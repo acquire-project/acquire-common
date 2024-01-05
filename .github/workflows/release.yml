@@ -187,22 +187,26 @@ jobs:
         with:
           path: ${{ github.workspace }}/artifacts
 
-      - name: Tagged release
-        if: ${{ github.ref_name != 'nightly' }}
-        uses: marvinpinto/action-automatic-releases@latest
-        with:
-          repo_token: ${{ github.token }}
-          prerelease: false
-          files: |
-            ${{steps.download.outputs.download-path}}/*/*.zip
+      - name: find out what's in the artifacts folder
+        run: ls ${{ github.workspace }}/artifacts
 
-      - name: Nightly release
-        if: ${{ github.ref_name == 'nightly' }}
-        uses: marvinpinto/action-automatic-releases@latest
-        with:
-          repo_token: ${{ secrets.PAT }}
-          automatic_release_tag: "nightly"
-          prerelease: true
-          title: "Nightly Release"
-          files: |
-            ${{steps.download.outputs.download-path}}/*/*.zip
+
+#      - name: Tagged release
+#        if: ${{ github.ref_name != 'nightly' }}
+#        uses: marvinpinto/action-automatic-releases@latest
+#        with:
+#          repo_token: ${{ github.token }}
+#          prerelease: false
+#          files: |
+#            ${{steps.download.outputs.download-path}}/*/*.zip
+#
+#      - name: Nightly release
+#        if: ${{ github.ref_name == 'nightly' }}
+#        uses: marvinpinto/action-automatic-releases@latest
+#        with:
+#          repo_token: ${{ secrets.PAT }}
+#          automatic_release_tag: "nightly"
+#          prerelease: true
+#          title: "Nightly Release"
+#          files: |
+#            ${{steps.download.outputs.download-path}}/*/*.zip
