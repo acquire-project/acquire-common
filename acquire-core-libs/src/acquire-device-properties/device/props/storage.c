@@ -33,7 +33,7 @@ copy_string(struct String* dst, const struct String* src)
         // Allocate a new string on the heap.
         CHECK(dst->str = malloc(src->nbytes)); // NOLINT
         dst->nbytes = src->nbytes;
-        dst->is_ref = 0;                       // mark as owned
+        dst->is_ref = 0; // mark as owned
     }
 
     CHECK(dst->is_ref == 0);
@@ -83,14 +83,18 @@ storage_properties_set_external_metadata(struct StorageProperties* out,
 
 int
 storage_properties_set_chunking_props(struct StorageProperties* out,
-                                      uint32_t chunk_width,
-                                      uint32_t chunk_height,
-                                      uint32_t chunk_planes)
+                                      uint32_t x,
+                                      uint32_t y,
+                                      uint32_t z,
+                                      uint32_t c,
+                                      uint32_t t,
+                                      enum AppendDimension append_dimension)
 {
     CHECK(out);
-    out->chunk_dims_px.width = chunk_width;
-    out->chunk_dims_px.height = chunk_height;
-    out->chunk_dims_px.planes = chunk_planes;
+    out->chunk_size = (struct storage_properties_chunk_size_s){
+        x, y, z, c, t,
+    };
+    out->append_dimension = append_dimension;
     return 1;
 Error:
     return 0;
@@ -98,14 +102,18 @@ Error:
 
 int
 storage_properties_set_sharding_props(struct StorageProperties* out,
-                                      uint32_t shard_width,
-                                      uint32_t shard_height,
-                                      uint32_t shard_planes)
+                                      uint32_t x,
+                                      uint32_t y,
+                                      uint32_t z,
+                                      uint32_t c,
+                                      uint32_t t)
 {
     CHECK(out);
-    out->shard_dims_chunks.width = shard_width;
-    out->shard_dims_chunks.height = shard_height;
-    out->shard_dims_chunks.planes = shard_planes;
+    out->shard_size_chunks.x = x;
+    out->shard_size_chunks.y = y;
+    out->shard_size_chunks.z = z;
+    out->shard_size_chunks.c = c;
+    out->shard_size_chunks.t = t;
     return 1;
 Error:
     return 0;
@@ -371,17 +379,17 @@ int
 unit_test__storage_properties_set_chunking_props()
 {
     struct StorageProperties props = { 0 };
-    CHECK(0 == props.chunk_dims_px.width);
-    CHECK(0 == props.chunk_dims_px.height);
-    CHECK(0 == props.chunk_dims_px.planes);
 
-    const uint32_t chunk_width = 1, chunk_height = 2, chunk_planes = 3;
+    const uint32_t x = 5, y = 4, z = 3, c = 2, t = 1;
     CHECK(storage_properties_set_chunking_props(
-      &props, chunk_width, chunk_height, chunk_planes));
+      &props, x, y, z, c, t, AppendDimension_c));
 
-    CHECK(chunk_width == props.chunk_dims_px.width);
-    CHECK(chunk_height == props.chunk_dims_px.height);
-    CHECK(chunk_planes == props.chunk_dims_px.planes);
+    CHECK(x == props.chunk_size.x);
+    CHECK(y == props.chunk_size.y);
+    CHECK(z == props.chunk_size.z);
+    CHECK(c == props.chunk_size.c);
+    CHECK(t == props.chunk_size.t);
+    CHECK(props.append_dimension == AppendDimension_c);
 
     storage_properties_destroy(&props);
 
@@ -391,20 +399,28 @@ Error:
 }
 
 int
+unit_test__storage_properties_default_append_dimension_is_t()
+{
+    struct StorageProperties props = { 0 };
+    CHECK(props.append_dimension == AppendDimension_t);
+    return 1;
+Error:
+    return 0;
+}
+
+int
 unit_test__storage_properties_set_sharding_props()
 {
     struct StorageProperties props = { 0 };
-    CHECK(0 == props.shard_dims_chunks.width);
-    CHECK(0 == props.shard_dims_chunks.height);
-    CHECK(0 == props.shard_dims_chunks.planes);
 
-    const uint32_t shard_width = 1, shard_height = 2, shard_planes = 3;
-    CHECK(storage_properties_set_sharding_props(
-      &props, shard_width, shard_height, shard_planes));
+    const uint32_t x = 5, y = 4, z = 3, c = 2, t = 1;
+    CHECK(storage_properties_set_sharding_props(&props, x, y, z, c, t));
 
-    CHECK(shard_width == props.shard_dims_chunks.width);
-    CHECK(shard_height == props.shard_dims_chunks.height);
-    CHECK(shard_planes == props.shard_dims_chunks.planes);
+    CHECK(x == props.shard_size_chunks.x);
+    CHECK(y == props.shard_size_chunks.y);
+    CHECK(z == props.shard_size_chunks.z);
+    CHECK(c == props.shard_size_chunks.c);
+    CHECK(t == props.shard_size_chunks.t);
 
     storage_properties_destroy(&props);
 
