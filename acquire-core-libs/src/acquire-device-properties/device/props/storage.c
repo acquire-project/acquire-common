@@ -91,6 +91,7 @@ storage_properties_set_chunking_props(struct StorageProperties* out,
                                       enum AppendDimension append_dimension)
 {
     CHECK(out);
+    CHECK(append_dimension < AppendDimensionCount);
     out->chunk_size = (struct storage_properties_chunk_size_s){
         x, y, z, c, t,
     };
@@ -109,11 +110,9 @@ storage_properties_set_sharding_props(struct StorageProperties* out,
                                       uint32_t t)
 {
     CHECK(out);
-    out->shard_size_chunks.x = x;
-    out->shard_size_chunks.y = y;
-    out->shard_size_chunks.z = z;
-    out->shard_size_chunks.c = c;
-    out->shard_size_chunks.t = t;
+    out->shard_size_chunks = (struct storage_properties_shard_size_s){
+        x, y, z, c, t
+    };
     return 1;
 Error:
     return 0;
