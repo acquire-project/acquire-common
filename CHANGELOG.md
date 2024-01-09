@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Users can now specify chunk and shard dimensions in t, c, x, y, and x, as well as the append dimension.
+
+## 0.2.0 - 2024-01-05
+
 ### Added
 
 - Additional validation in `test-change-external-metadata`.
