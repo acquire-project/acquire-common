@@ -133,7 +133,7 @@ extern "C"
     /// @param[in] x The width, in px, of a chunk.
     /// @param[in] y The height, in px, of a chunk.
     /// @param[in] z The number of @p chunk_width x @p chunk_height
-    ///            planes in a single chunk.
+    ///            planes per channel per time point in a single chunk.
     /// @param[in] c The number of channels in a single chunk.
     /// @param[in] t The number of time points in a single chunk.
     /// @param[in] append_dimension The dimension to append frames along.
