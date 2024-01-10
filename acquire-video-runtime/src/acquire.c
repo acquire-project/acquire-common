@@ -272,6 +272,7 @@ configure_video_stream(struct video_s* const video,
                             &pstorage->identifier,
                             &pstorage->settings,
                             pstorage->write_delay_ms) == Device_Ok);
+    is_ok &= reserve_image_shape(video);
 
     EXPECT(is_ok, "Failed to configure video stream.");
 
@@ -494,7 +495,6 @@ acquire_start(struct AcquireRuntime* self_)
         }
 
         CHECK(video_sink_start(&video->sink) == Device_Ok);
-        CHECK(reserve_image_shape(video));
         CHECK(video_filter_start(&video->filter) == Device_Ok);
         CHECK(video_source_start(&video->source) == Device_Ok);
 
