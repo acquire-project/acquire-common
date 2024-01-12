@@ -418,14 +418,14 @@ unit_test__storage_properties_set_chunking_props()
 
     const uint32_t x = 5, y = 4, z = 3, c = 2, t = 1;
     CHECK(storage_properties_set_chunking_props(
-      &props, x, y, z, c, t, AppendDimension_c));
+      &props, x, y, z, c, t, AppendDimension_C));
 
     CHECK(x == props.chunk_shape.x);
     CHECK(y == props.chunk_shape.y);
     CHECK(z == props.chunk_shape.z);
     CHECK(c == props.chunk_shape.c);
     CHECK(t == props.chunk_shape.t);
-    CHECK(props.append_dimension == AppendDimension_c);
+    CHECK(props.append_dimension == AppendDimension_C);
 
     storage_properties_destroy(&props);
 
@@ -438,7 +438,7 @@ int
 unit_test__storage_properties_default_append_dimension_is_t()
 {
     struct StorageProperties props = { 0 };
-    CHECK(props.append_dimension == AppendDimension_t);
+    CHECK(props.append_dimension == AppendDimension_T);
     return 1;
 Error:
     return 0;

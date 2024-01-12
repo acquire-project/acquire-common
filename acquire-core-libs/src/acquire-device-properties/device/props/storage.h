@@ -13,10 +13,21 @@ extern "C"
 
     enum AppendDimension
     {
-        AppendDimension_t = 0,
-        AppendDimension_c,
-        AppendDimension_z,
+        AppendDimension_T = 0,
+        AppendDimension_C,
+        AppendDimension_Z,
         AppendDimensionCount
+    };
+
+    enum AppendOrder
+    {
+        AppendOrder_ZCT = 0,
+        AppendOrder_ZTC,
+        AppendOrder_CZT,
+        AppendOrder_CTZ,
+        AppendOrder_TZC,
+        AppendOrder_TCZ,
+        AppendOrderCount
     };
 
     /// Properties for a storage driver.
@@ -49,6 +60,9 @@ extern "C"
 
         /// Which dimension to append frames along.
         enum AppendDimension append_dimension;
+
+        /// Order of dimensions to append frames along.
+        enum AppendOrder append_order;
 
         /// Enable multiscale storage if true.
         uint8_t enable_multiscale;
