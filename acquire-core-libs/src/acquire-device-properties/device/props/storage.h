@@ -27,18 +27,25 @@ extern "C"
         uint32_t first_frame_id;
         struct PixelScale pixel_scale_um;
 
-        /// Dimensions of chunks, in pixels (x, y), stacks (z), channels (c),
-        /// and time (t).
-        struct storage_properties_chunk_size_s
+        /// Expected dimensions of the output array, in pixels (x, y), planes
+        /// (z), channels (c), and time (t).
+        struct storage_properties_array_extents_s
         {
             uint32_t x, y, z, c, t;
-        } chunk_size;
+        } array_extents;
+
+        /// Dimensions of chunks, in pixels (x, y), planes (z), channels (c),
+        /// and time (t).
+        struct storage_properties_chunk_shape_s
+        {
+            uint32_t x, y, z, c, t;
+        } chunk_shape;
 
         /// Dimensions of shards, in chunks.
-        struct storage_properties_shard_size_s
+        struct storage_properties_shard_shape_s
         {
             uint32_t x, y, z, c, t;
-        } shard_size_chunks;
+        } shard_shape_chunks;
 
         /// Which dimension to append frames along.
         enum AppendDimension append_dimension;
@@ -125,6 +132,28 @@ extern "C"
     int storage_properties_set_external_metadata(struct StorageProperties* out,
                                                  const char* metadata,
                                                  size_t bytes_of_metadata);
+
+    /// @brief Set the expected array dimensions for `out`.
+    /// Convenience function to set array extents in a single call.
+    /// @returns 1 on success, otherwise 0
+    /// @param[in, out] out The storage properties to change.
+    /// @param[in] x The width, in px, of the output array.
+    /// @param[in] y The height, in px, of the output array.
+    /// @param[in] z The expected number of planes per channel per time point in
+    /// the output array. If z is not the append dimension, 0 indicates that
+    /// this dimension should be skipped.
+    /// @param[in] c The expected number of channels in the output array. If c
+    /// is not the append dimension, 0 indicates that this dimension should be
+    /// skipped.
+    /// @param[in] t The expected number of time points in the output array. If
+    /// t is not the append dimension, 0 indicates that this dimension should be
+    /// skipped.
+    int storage_properties_set_array_extents(struct StorageProperties* out,
+                                             uint32_t x,
+                                             uint32_t y,
+                                             uint32_t z,
+                                             uint32_t c,
+                                             uint32_t t);
 
     /// @brief Set chunking properties for `out`.
     /// Convenience function to set chunking properties in a single call.

@@ -70,6 +70,7 @@ extern "C"
     // device-properties
     int unit_test__storage__storage_property_string_check();
     int unit_test__storage__copy_string();
+    int unit_test__storage_properties_set_array_extents();
     int unit_test__storage_properties_set_chunking_props();
     int unit_test__storage_properties_default_append_dimension_is_t();
     int unit_test__storage_properties_set_sharding_props();
@@ -97,6 +98,7 @@ main()
         CASE(unit_test__monotonic_clock_increases_monotonically),
         CASE(unit_test__storage__storage_property_string_check),
         CASE(unit_test__storage__copy_string),
+        CASE(unit_test__storage_properties_set_array_extents),
         CASE(unit_test__storage_properties_set_chunking_props),
         CASE(unit_test__storage_properties_default_append_dimension_is_t),
         CASE(unit_test__storage_properties_set_sharding_props),

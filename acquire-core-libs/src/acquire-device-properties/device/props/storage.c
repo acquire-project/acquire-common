@@ -82,6 +82,23 @@ storage_properties_set_external_metadata(struct StorageProperties* out,
 }
 
 int
+storage_properties_set_array_extents(struct StorageProperties* out,
+                                     uint32_t x,
+                                     uint32_t y,
+                                     uint32_t z,
+                                     uint32_t c,
+                                     uint32_t t)
+{
+    CHECK(out);
+    out->array_extents = (struct storage_properties_array_extents_s){
+        x, y, z, c, t,
+    };
+    return 1;
+Error:
+    return 0;
+}
+
+int
 storage_properties_set_chunking_props(struct StorageProperties* out,
                                       uint32_t x,
                                       uint32_t y,
@@ -92,7 +109,7 @@ storage_properties_set_chunking_props(struct StorageProperties* out,
 {
     CHECK(out);
     CHECK(append_dimension < AppendDimensionCount);
-    out->chunk_size = (struct storage_properties_chunk_size_s){
+    out->chunk_shape = (struct storage_properties_chunk_shape_s){
         x, y, z, c, t,
     };
     out->append_dimension = append_dimension;
@@ -110,9 +127,8 @@ storage_properties_set_sharding_props(struct StorageProperties* out,
                                       uint32_t t)
 {
     CHECK(out);
-    out->shard_size_chunks = (struct storage_properties_shard_size_s){
-        x, y, z, c, t
-    };
+    out->shard_shape_chunks =
+      (struct storage_properties_shard_shape_s){ x, y, z, c, t };
     return 1;
 Error:
     return 0;
@@ -375,6 +391,27 @@ Error:
 }
 
 int
+unit_test__storage_properties_set_array_extents()
+{
+    struct StorageProperties props = { 0 };
+
+    const uint32_t x = 4, y = 3, z = 2, c = 1, t = 0;
+    CHECK(storage_properties_set_array_extents(&props, x, y, z, c, t));
+
+    CHECK(x == props.array_extents.x);
+    CHECK(y == props.array_extents.y);
+    CHECK(z == props.array_extents.z);
+    CHECK(c == props.array_extents.c);
+    CHECK(t == props.array_extents.t);
+
+    storage_properties_destroy(&props);
+
+    return 1;
+Error:
+    return 0;
+}
+
+int
 unit_test__storage_properties_set_chunking_props()
 {
     struct StorageProperties props = { 0 };
@@ -383,11 +420,11 @@ unit_test__storage_properties_set_chunking_props()
     CHECK(storage_properties_set_chunking_props(
       &props, x, y, z, c, t, AppendDimension_c));
 
-    CHECK(x == props.chunk_size.x);
-    CHECK(y == props.chunk_size.y);
-    CHECK(z == props.chunk_size.z);
-    CHECK(c == props.chunk_size.c);
-    CHECK(t == props.chunk_size.t);
+    CHECK(x == props.chunk_shape.x);
+    CHECK(y == props.chunk_shape.y);
+    CHECK(z == props.chunk_shape.z);
+    CHECK(c == props.chunk_shape.c);
+    CHECK(t == props.chunk_shape.t);
     CHECK(props.append_dimension == AppendDimension_c);
 
     storage_properties_destroy(&props);
@@ -415,11 +452,11 @@ unit_test__storage_properties_set_sharding_props()
     const uint32_t x = 5, y = 4, z = 3, c = 2, t = 1;
     CHECK(storage_properties_set_sharding_props(&props, x, y, z, c, t));
 
-    CHECK(x == props.shard_size_chunks.x);
-    CHECK(y == props.shard_size_chunks.y);
-    CHECK(z == props.shard_size_chunks.z);
-    CHECK(c == props.shard_size_chunks.c);
-    CHECK(t == props.shard_size_chunks.t);
+    CHECK(x == props.shard_shape_chunks.x);
+    CHECK(y == props.shard_shape_chunks.y);
+    CHECK(z == props.shard_shape_chunks.z);
+    CHECK(c == props.shard_shape_chunks.c);
+    CHECK(t == props.shard_shape_chunks.t);
 
     storage_properties_destroy(&props);
 
