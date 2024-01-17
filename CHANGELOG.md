@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- A bug where changing device identifiers for the storage device was not being handled correctly.
+
 ### Changed
 
 - `reserve_image_shape` is now called in `acquire_configure` rather than `acquire_start`.

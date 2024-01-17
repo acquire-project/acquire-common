@@ -14,6 +14,7 @@ else ()
             configure-triggering
             list-digital-lines
             software-trigger-acquires-single-frames
+            switch-storage-identifier
             write-side-by-side-tiff
     )
 
