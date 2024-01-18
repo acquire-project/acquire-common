@@ -232,8 +232,10 @@ main()
         fs::remove_all(TEST ".tif");
 
     } catch (const std::exception& exc) {
+        acquire_shutdown(runtime);
         return 1;
     } catch (...) {
+        acquire_shutdown(runtime);
         return 1;
     }
 
