@@ -191,6 +191,7 @@ camera_get_frame(struct Camera* self,
                  struct ImageInfo* info)
 {
     CHECK(self);
+    CHECK(self->state == DeviceState_Running);
     enum DeviceStatusCode ecode = self->get_frame(self, im, nbytes, info);
     if (ecode != Device_Ok) {
         camera_stop(self);

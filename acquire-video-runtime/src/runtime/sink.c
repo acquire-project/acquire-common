@@ -46,8 +46,6 @@ video_sink_init(struct video_sink_s* self,
 
     thread_init(&self->thread);
     return Device_Ok;
-Error:
-    return Device_Err;
 }
 
 static int
@@ -170,7 +168,6 @@ video_sink_configure(struct video_sink_s* self,
                      float write_delay_ms)
 {
     self->write_delay_ms = write_delay_ms;
-    self->identifier = *identifier;
     if (self->storage && !is_equal(&self->identifier, identifier)) {
         storage_close(self->storage);
         self->storage = NULL;

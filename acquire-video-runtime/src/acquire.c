@@ -575,7 +575,8 @@ acquire_abort(struct AcquireRuntime* self_)
 
         video->source.is_stopping = 1;
         channel_accept_writes(&video->sink.in, 0);
-        camera_stop(video->source.camera);
+        // if the camera is waiting on a trigger, this will unblock it.
+        camera_execute_trigger(video->source.camera);
     }
 
     return acquire_stop(self_);

@@ -47,7 +47,7 @@ extern "C"
         ///          (i.e. one call of start after one call of stop should succeed).
         enum DeviceStatusCode (*stop)(struct Camera*);
 
-        /// @brief Execute the software trigger if it's enabled.
+        /// @brief Execute the software trigger.
         enum DeviceStatusCode (*execute_trigger)(struct Camera*);
 
         /// @brief Gets the next frame from the camera.
