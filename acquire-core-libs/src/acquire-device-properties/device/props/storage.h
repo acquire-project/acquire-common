@@ -70,6 +70,14 @@ extern "C"
 
     struct StoragePropertyMetadata
     {
+        /// Expected dimensions of the output array, in pixels (x, y), planes
+        /// (z), channels (c), and time (t).
+        struct storage_property_metadata_array_extents_s
+        {
+            uint8_t is_supported;
+            struct Property x, y, z, c, t;
+        } array_extents;
+
         /// Metadata for chunking.
         /// Indicates whether chunking is supported, and if so, bounds on what
         /// the dimensions of the chunks are.
@@ -77,7 +85,7 @@ extern "C"
         {
             uint8_t is_supported;
             struct Property x, y, z, c, t;
-        } chunk_size;
+        } chunk_shape;
 
         /// Metadata for sharding.
         /// Indicates whether sharding is supported, and if so, bounds on what
@@ -86,7 +94,7 @@ extern "C"
         {
             uint8_t is_supported;
             struct Property x, y, z, c, t;
-        } shard_size_chunks;
+        } shard_shape_chunks;
 
         struct storage_property_metadata_multiscale_s
         {
