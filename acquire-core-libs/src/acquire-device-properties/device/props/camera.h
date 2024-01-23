@@ -13,12 +13,15 @@ extern "C"
 
     /// @brief Stores the properties of a camera.
     /// @details Can be populated with values from a camera or
-    ///          can be filled out to define new values that a camera should adopt.
+    ///          can be filled out to define new values that a camera should
+    ///          adopt.
     struct CameraProperties
     {
         /// @brief Exposure time of a frame in microseconds.
-        /// @details Acquire assumes that exposure is always manually specified by this period of time.
-        ///          It does not currently support auto-exposure or durations defined by trigger widths.
+        /// @details Acquire assumes that exposure is always manually specified
+        /// by this period of time.
+        ///          It does not currently support auto-exposure or durations
+        ///          defined by trigger widths.
         float exposure_time_us;
 
         float line_interval_us;
@@ -27,14 +30,15 @@ extern "C"
         /// @brief Binning or downsample factor.
         /// @details Determines how many pixels in each spatial dimension on the
         ///          sensor are aggregated to form pixels in an image.
-        ///          For example, if we have a sensor of size 1920x1200 and a binning
-        ///          factor of 2, one image should be 960x600.
+        ///          For example, if we have a sensor of size 1920x1200 and a
+        ///          binning factor of 2, one image should be 960x600.
         uint8_t binning;
 
         /// @brief Type of each image pixel or sample.
         enum SampleType pixel_type;
 
-        /// @brief Offset of the region of interest on the sensor from its top-left corner.
+        /// @brief Offset of the region of interest on the sensor from its
+        /// top-left corner.
         /// @details Each value represents a number of aggregated pixels in the
         ///          frame after binning has been applied.
         struct camera_properties_offset_s
@@ -87,11 +91,13 @@ extern "C"
 
         struct CameraPropertyMetadataDigitalLineMetadata
         {
-            /// @brief The number of supported digital IO lines. Must be less than 8.
+            /// @brief The number of supported digital IO lines. Must be less
+            /// than 8.
             uint8_t line_count;
 
             /// @brief Support describing up to 8 names for use with triggering.
-            /// @details name[i] is a short, null terminated string naming line i.
+            /// @details name[i] is a short, null terminated string naming line
+            /// i.
             char names[8][64];
         } digital_lines;
 
@@ -99,9 +105,11 @@ extern "C"
         {
             struct camera_properties_metadata_trigger_capabilities_s
             {
-                /// @brief Bit i is set if line i can be used as a trigger input.
+                /// @brief Bit i is set if line i can be used as a trigger
+                /// input.
                 uint8_t input;
-                /// @brief Bit i is set if line i can be used as a trigger output.
+                /// @brief Bit i is set if line i can be used as a trigger
+                /// output.
                 uint8_t output;
             } acquisition_start, exposure, frame_start;
         } triggers;

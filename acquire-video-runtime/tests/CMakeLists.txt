@@ -17,6 +17,7 @@ else ()
             change-file-name
             client-queue-is-flushed-after-abort
             configure-after-shutdown-and-reinitialize
+            default-devices
             device-selection
             no-abort-on-dropped-frames
             one-video-stream

@@ -44,7 +44,8 @@ extern "C"
         /// @details This instructs the camera to stop and may block until it
         ///          actually has stopped acquiring frames.
         ///          The camera should also be restartable after calling this
-        ///          (i.e. one call of start after one call of stop should succeed).
+        ///          (i.e. one call of start after one call of stop should
+        ///          succeed).
         enum DeviceStatusCode (*stop)(struct Camera*);
 
         /// @brief Execute the software trigger.

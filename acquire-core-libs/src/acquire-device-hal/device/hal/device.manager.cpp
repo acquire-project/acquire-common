@@ -402,3 +402,22 @@ device_manager_select(const struct DeviceManager* self,
     }
     return Device_Err;
 }
+
+enum DeviceStatusCode
+device_manager_select_default(const struct DeviceManager* self,
+                              enum DeviceKind kind,
+                              struct DeviceIdentifier* out)
+{
+    switch (kind) {
+        case DeviceKind_Camera:
+            return device_manager_select_inner_(
+              self, kind, ".*random.*", sizeof(".*random.*") - 1, out);
+        case DeviceKind_Storage:
+            return device_manager_select_inner_(
+              self, kind, "trash", sizeof("trash") - 1, out);
+        default:
+            LOGE("Invalid parameter `kind`. Got: %s",
+                 device_kind_as_string(kind));
+            return Device_Err;
+    }
+}

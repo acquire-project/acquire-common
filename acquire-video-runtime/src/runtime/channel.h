@@ -27,13 +27,16 @@ extern "C"
         /// Position in the channel where the next write operation will occur.
         size_t head;
 
-        /// Highest position in the channel that has been written to in the current cycle.
+        /// Highest position in the channel that has been written to in the
+        /// current cycle.
         size_t high;
 
-        /// Number of times the buffer has been filled and wrapped around to the start.
+        /// Number of times the buffer has been filled and wrapped around to the
+        /// start.
         size_t cycle;
 
-        /// Pointer to the end position of the reserved region of a mapped write.
+        /// Pointer to the end position of the reserved region of a mapped
+        /// write.
         size_t mapped;
 
         /// Whether or not the channel is accepting writes.
@@ -44,7 +47,8 @@ extern "C"
         {
             size_t pos[8];
             size_t cycles[8];
-            unsigned n; /// Number of readers currently reading from the channel.
+            unsigned
+              n; /// Number of readers currently reading from the channel.
         } holds;
     };
 

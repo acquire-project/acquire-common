@@ -63,6 +63,17 @@ extern "C"
       size_t bytes_of_name,
       struct DeviceIdentifier* out);
 
+    /// Query for the default device with a matching `kind`.
+    ///
+    /// @param self   The deviceManager context to query.
+    /// @param kind   The kind of device to select.
+    /// @param out    The id of the default device discovered that matches the
+    ///               `kind`.
+    enum DeviceStatusCode device_manager_select_default(
+      const struct DeviceManager* self,
+      enum DeviceKind kind,
+      struct DeviceIdentifier* out);
+
     struct Driver* device_manager_get_driver(
       const struct DeviceManager* self,
       const struct DeviceIdentifier* identifier);
