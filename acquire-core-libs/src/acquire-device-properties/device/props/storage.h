@@ -11,23 +11,12 @@ extern "C"
     struct DeviceManager;
     struct VideoFrame;
 
-    enum AppendDimension
-    {
-        AppendDimension_T = 0,
-        AppendDimension_C,
-        AppendDimension_Z,
-        AppendDimensionCount
-    };
-
-    enum AppendOrder
-    {
-        AppendOrder_ZCT = 0,
-        AppendOrder_ZTC,
-        AppendOrder_CZT,
-        AppendOrder_CTZ,
-        AppendOrder_TZC,
-        AppendOrder_TCZ,
-        AppendOrderCount
+    enum DimensionType {
+        DimensionType_None = 0,
+        DimensionType_Spatial,
+        DimensionType_Channel,
+        DimensionType_Time,
+        DimensionTypeCount
     };
 
     /// Properties for a storage driver.
@@ -38,31 +27,17 @@ extern "C"
         uint32_t first_frame_id;
         struct PixelScale pixel_scale_um;
 
-        /// Expected dimensions of the output array, in pixels (x, y), planes
-        /// (z), channels (c), and time (t).
-        struct storage_properties_array_extents_s
-        {
-            uint32_t x, y, z, c, t;
-        } array_extents;
+        /// Dimensions of the output array, with array extents, chunk sizes, and shard sizes.
+        /// The first dimension is the fastest varying dimension. The last dimension is the append dimension.
+        struct Dimension {
+            struct String name;  // the name of the dimension as it appears in the metadata, e.g., "x", "y", "z", "c", "t"
+            enum DimensionType kind;  // the type of dimension, e.g., spatial, channel, time
+            uint32_t array_size_px;  // the expected size of the full output array along this dimension
+            uint32_t chunk_size_px;  // the size of a chunk along this dimension
+            uint32_t shard_size_chunks;  // the number of chunks in a shard along this dimension
+        } dimensions[8];
 
-        /// Dimensions of chunks, in pixels (x, y), planes (z), channels (c),
-        /// and time (t).
-        struct storage_properties_chunk_shape_s
-        {
-            uint32_t x, y, z, c, t;
-        } chunk_shape;
-
-        /// Dimensions of shards, in chunks.
-        struct storage_properties_shard_shape_s
-        {
-            uint32_t x, y, z, c, t;
-        } shard_shape_chunks;
-
-        /// Which dimension to append frames along.
-        enum AppendDimension append_dimension;
-
-        /// Order of dimensions to append frames along.
-        enum AppendOrder append_order;
+        uint8_t append_dimension;
 
         /// Enable multiscale storage if true.
         uint8_t enable_multiscale;
@@ -70,32 +45,6 @@ extern "C"
 
     struct StoragePropertyMetadata
     {
-        /// Expected dimensions of the output array, in pixels (x, y), planes
-        /// (z), channels (c), and time (t).
-        struct storage_property_metadata_array_extents_s
-        {
-            uint8_t is_supported;
-            struct Property x, y, z, c, t;
-        } array_extents;
-
-        /// Metadata for chunking.
-        /// Indicates whether chunking is supported, and if so, bounds on what
-        /// the dimensions of the chunks are.
-        struct storage_property_metadata_chunking_s
-        {
-            uint8_t is_supported;
-            struct Property x, y, z, c, t;
-        } chunk_shape;
-
-        /// Metadata for sharding.
-        /// Indicates whether sharding is supported, and if so, bounds on what
-        /// the dimensions (in chunks) of the shards are.
-        struct storage_property_metadata_sharding_s
-        {
-            uint8_t is_supported;
-            struct Property x, y, z, c, t;
-        } shard_shape_chunks;
-
         struct storage_property_metadata_multiscale_s
         {
             uint8_t is_supported;
@@ -154,6 +103,19 @@ extern "C"
     int storage_properties_set_external_metadata(struct StorageProperties* out,
                                                  const char* metadata,
                                                  size_t bytes_of_metadata);
+
+    int storage_properties_insert_dimension(struct StorageProperties* out,
+                                            uint32_t index,
+                                            const char* name,
+                                            enum DimensionType kind,
+                                            uint32_t array_size_px,
+                                            uint32_t chunk_size_px,
+                                            uint32_t shard_size_chunks);
+
+    int storage_properties_remove_dimension(struct StorageProperties* out,
+                                            uint32_t index);
+
+    int storage_properties_dimension_count(const struct StorageProperties* out);
 
     /// @brief Set the expected array dimensions for `out`.
     /// Convenience function to set array extents in a single call.

@@ -82,6 +82,69 @@ storage_properties_set_external_metadata(struct StorageProperties* out,
 }
 
 int
+storage_properties_insert_dimension(struct StorageProperties* out,
+                                    uint32_t index,
+                                    const char* name,
+                                    enum DimensionType kind,
+                                    uint32_t array_size_px,
+                                    uint32_t chunk_size_px,
+                                    uint32_t shard_size_chunks)
+{
+    CHECK(out);
+    CHECK(countof(out->dimensions) > index);
+    EXPECT(storage_properties_dimension_count(out) < countof(out->dimensions),
+           "Cannot insert dimension. Too many dimensions.");
+
+    // shift all dimensions after index up by one
+    for (int i = countof(out->dimensions) - 1; i > index; --i) {
+        out->dimensions[i] = out->dimensions[i - 1];
+    }
+    out->dimensions[index] = (struct Dimension){
+        .name = { .is_ref = 1, .nbytes = strlen(name) + 1, .str = (char*)name },
+        .kind = kind,
+        .array_size_px = array_size_px,
+        .chunk_size_px = chunk_size_px,
+        .shard_size_chunks = shard_size_chunks,
+    };
+
+    return 1;
+Error:
+    return 0;
+}
+
+int
+storage_properties_remove_dimension(struct StorageProperties* out,
+                                    uint32_t index)
+{
+    CHECK(out);
+    CHECK(index < countof(out->dimensions));
+
+    // shift all dimensions after index down by one
+    for (int i = index; i < countof(out->dimensions) - 1; ++i) {
+        out->dimensions[i] = out->dimensions[i + 1];
+    }
+    out->dimensions[countof(out->dimensions) - 1] = (struct Dimension){ 0 };
+
+    return 1;
+Error:
+    return 0;
+}
+
+int
+storage_properties_dimension_count(const struct StorageProperties* out)
+{
+    CHECK(out);
+
+    for (int i = 0; i < countof(out->dimensions); ++i) {
+        if (out->dimensions[i].kind == DimensionType_None) {
+            return i;
+        }
+    }
+Error:
+    return 0;
+}
+
+int
 storage_properties_set_array_extents(struct StorageProperties* out,
                                      uint32_t x,
                                      uint32_t y,
