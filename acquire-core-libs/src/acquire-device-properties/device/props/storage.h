@@ -149,7 +149,7 @@ extern "C"
     /// @param[in] shard_size_chunks The number of chunks in a shard along this
     ///                              dimension.
     /// @returns 1 on success, otherwise 0
-    int storage_properties_insert_dimension(struct StorageProperties* out,
+    int storage_properties_dimension_insert(struct StorageProperties* out,
                                             uint32_t index,
                                             const char* name,
                                             size_t bytes_of_name,
@@ -162,7 +162,7 @@ extern "C"
     /// @param[out] out The storage properties containing the dimension array.
     /// @param[in] index The index at which to remove the dimension.
     /// @returns 1 on success, otherwise 0
-    int storage_properties_remove_dimension(struct StorageProperties* out,
+    int storage_properties_dimension_remove(struct StorageProperties* out,
                                             uint32_t index);
 
     /// @brief Get the number of dimensions in `out`.
@@ -174,7 +174,7 @@ extern "C"
     /// @param[in] out The storage properties containing the dimension array.
     /// @param[in] index The index at which to get the dimension.
     /// @param[out] dimension The dimension at `index` in `out`.
-    int storage_properties_get_dimension(
+    int storage_properties_dimension_get(
       const struct StorageProperties* out,
       uint32_t index,
       struct storage_properties_dimension_s* dimension);

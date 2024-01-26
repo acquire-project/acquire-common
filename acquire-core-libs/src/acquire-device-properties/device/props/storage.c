@@ -116,7 +116,7 @@ Error:
 }
 
 int
-storage_properties_insert_dimension(struct StorageProperties* out,
+storage_properties_dimension_insert(struct StorageProperties* out,
                                     uint32_t index,
                                     const char* name,
                                     size_t bytes_of_name,
@@ -155,7 +155,7 @@ Error:
 }
 
 int
-storage_properties_remove_dimension(struct StorageProperties* out,
+storage_properties_dimension_remove(struct StorageProperties* out,
                                     uint32_t index)
 {
     CHECK(out);
@@ -189,7 +189,7 @@ Error:
 }
 
 int
-storage_properties_get_dimension(
+storage_properties_dimension_get(
   const struct StorageProperties* out,
   uint32_t index,
   struct storage_properties_dimension_s* dimension)
@@ -562,19 +562,19 @@ unit_test__storage_properties_insert_dimension()
     CHECK(0 == storage_properties_dimension_count(&props));
 
     // can't skip an entry on insert
-    CHECK(!storage_properties_insert_dimension(
+    CHECK(!storage_properties_dimension_insert(
       &props, 1, "x", 2, DimensionType_Spatial, 1, 1, 1));
 
     // can't insert with a null char pointer
-    CHECK(!storage_properties_insert_dimension(
+    CHECK(!storage_properties_dimension_insert(
       &props, 0, NULL, 0, DimensionType_Spatial, 1, 1, 1));
 
     // can't insert with an empty name
-    CHECK(!storage_properties_insert_dimension(
+    CHECK(!storage_properties_dimension_insert(
       &props, 0, "", 0, DimensionType_Spatial, 1, 1, 1));
 
     // insert at 0
-    CHECK(storage_properties_insert_dimension(
+    CHECK(storage_properties_dimension_insert(
       &props, 0, "y", 2, DimensionType_Spatial, 1, 1, 1));
     CHECK(0 == strcmp(props.acquisition_dimensions[0].name.str, "y"));
     CHECK(props.acquisition_dimensions[0].kind == DimensionType_Spatial);
@@ -585,7 +585,7 @@ unit_test__storage_properties_insert_dimension()
     CHECK(1 == storage_properties_dimension_count(&props));
 
     // insert at 0 again
-    CHECK(storage_properties_insert_dimension(
+    CHECK(storage_properties_dimension_insert(
       &props, 0, "x", 2, DimensionType_Spatial, 2, 2, 2));
     CHECK(0 == strcmp(props.acquisition_dimensions[0].name.str, "x"));
     CHECK(props.acquisition_dimensions[0].kind == DimensionType_Spatial);
@@ -603,7 +603,7 @@ unit_test__storage_properties_insert_dimension()
     CHECK(2 == storage_properties_dimension_count(&props));
 
     // insert at 2
-    CHECK(storage_properties_insert_dimension(
+    CHECK(storage_properties_dimension_insert(
       &props, 2, "z", 2, DimensionType_Spatial, 3, 3, 3));
     CHECK(0 == strcmp(props.acquisition_dimensions[2].name.str, "z"));
     CHECK(props.acquisition_dimensions[2].kind == DimensionType_Spatial);
@@ -627,7 +627,7 @@ unit_test__storage_properties_insert_dimension()
     CHECK(3 == storage_properties_dimension_count(&props));
 
     // can't insert at 4 (would skip an entry)
-    CHECK(!storage_properties_insert_dimension(
+    CHECK(!storage_properties_dimension_insert(
       &props, 4, "t", 2, DimensionType_Time, 1, 1, 1));
 
     return 1;
@@ -642,10 +642,10 @@ unit_test__storage_properties_remove_dimension()
     CHECK(0 == storage_properties_dimension_count(&props));
 
     // can't remove at 0
-    CHECK(!storage_properties_remove_dimension(&props, 0));
+    CHECK(!storage_properties_dimension_remove(&props, 0));
 
     // insert at 0
-    CHECK(storage_properties_insert_dimension(
+    CHECK(storage_properties_dimension_insert(
       &props, 0, "x", 2, DimensionType_Spatial, 1, 1, 1));
     CHECK(0 == strcmp(props.acquisition_dimensions[0].name.str, "x"));
     CHECK(props.acquisition_dimensions[0].kind == DimensionType_Spatial);
@@ -656,11 +656,11 @@ unit_test__storage_properties_remove_dimension()
     CHECK(1 == storage_properties_dimension_count(&props));
 
     // insert at 1
-    CHECK(storage_properties_insert_dimension(
+    CHECK(storage_properties_dimension_insert(
       &props, 1, "y", 2, DimensionType_Spatial, 2, 2, 2));
 
     // remove at 0
-    CHECK(storage_properties_remove_dimension(&props, 0));
+    CHECK(storage_properties_dimension_remove(&props, 0));
 
     // dimension at 1 should have shifted down to 0
     CHECK(0 == strcmp(props.acquisition_dimensions[0].name.str, "y"));
@@ -682,7 +682,7 @@ unit_test__storage_properties_get_dimension()
 
     // trying to get an out of bounds dimension will fail
     struct storage_properties_dimension_s dim = { 0 };
-    CHECK(!storage_properties_get_dimension(&props, 0, &dim));
+    CHECK(!storage_properties_dimension_get(&props, 0, &dim));
 
     // check before we alter it
     CHECK(NULL == dim.name.str);
@@ -692,11 +692,11 @@ unit_test__storage_properties_get_dimension()
     CHECK(dim.shard_size_chunks == 0);
 
     // insert at 0
-    CHECK(storage_properties_insert_dimension(
+    CHECK(storage_properties_dimension_insert(
       &props, 0, "x", 2, DimensionType_Spatial, 1, 1, 1));
 
     // get at 0
-    CHECK(storage_properties_get_dimension(&props, 0, &dim));
+    CHECK(storage_properties_dimension_get(&props, 0, &dim));
     CHECK(0 == strcmp(dim.name.str, "x"));
     CHECK(dim.kind == DimensionType_Spatial);
     CHECK(dim.array_size_px == 1);
@@ -704,10 +704,10 @@ unit_test__storage_properties_get_dimension()
     CHECK(dim.shard_size_chunks == 1);
 
     // trying to get an oob dimension will still fail
-    CHECK(!storage_properties_get_dimension(&props, 1, &dim));
+    CHECK(!storage_properties_dimension_get(&props, 1, &dim));
 
     // should be unaltered
-    CHECK(storage_properties_get_dimension(&props, 0, &dim));
+    CHECK(storage_properties_dimension_get(&props, 0, &dim));
     CHECK(0 == strcmp(dim.name.str, "x"));
     CHECK(dim.kind == DimensionType_Spatial);
     CHECK(dim.array_size_px == 1);
