@@ -117,6 +117,38 @@ extern "C"
                                                  const char* metadata,
                                                  size_t bytes_of_metadata);
 
+    /// @brief Initialize the dimension struct in `out`.
+    /// @param[out] out The dimension struct to initialize.
+    /// @param[in] name The name of the dimension.
+    /// @param[in] bytes_of_name The number of bytes in the name buffer.
+    ///                          Should include the terminating NULL.
+    /// @param[in] kind The type of dimension.
+    /// @param[in] array_size_px The size of the array along this dimension.
+    /// @param[in] chunk_size_px The size of a chunk along this dimension.
+    /// @param[in] shard_size_chunks The number of chunks in a shard along this
+    ///                              dimension.
+    /// @returns 1 on success, otherwise 0
+    int storage_properties_dimension_init(
+      struct storage_properties_dimension_s* out,
+      const char* name,
+      size_t bytes_of_name,
+      enum DimensionType kind,
+      uint32_t array_size_px,
+      uint32_t chunk_size_px,
+      uint32_t shard_size_chunks);
+
+    /// @brief Insert a dimension into `out` at `index`.
+    /// @param[out] out The storage properties containing the dimension array.
+    /// @param[in] index The index at which to insert the dimension.
+    /// @param[in] name The name of the dimension.
+    /// @param[in] bytes_of_name The number of bytes in the name buffer.
+    ///                          Should include the terminating NULL.
+    /// @param[in] kind The type of dimension.
+    /// @param[in] array_size_px The size of the array along this dimension.
+    /// @param[in] chunk_size_px The size of a chunk along this dimension.
+    /// @param[in] shard_size_chunks The number of chunks in a shard along this
+    ///                              dimension.
+    /// @returns 1 on success, otherwise 0
     int storage_properties_insert_dimension(struct StorageProperties* out,
                                             uint32_t index,
                                             const char* name,
@@ -126,19 +158,35 @@ extern "C"
                                             uint32_t chunk_size_px,
                                             uint32_t shard_size_chunks);
 
+    /// @brief Remove a dimension from `out` at `index`.
+    /// @param[out] out The storage properties containing the dimension array.
+    /// @param[in] index The index at which to remove the dimension.
+    /// @returns 1 on success, otherwise 0
     int storage_properties_remove_dimension(struct StorageProperties* out,
                                             uint32_t index);
 
+    /// @brief Get the number of dimensions in `out`.
+    /// @param[in] out The storage properties containing the dimension array.
+    /// @returns The number of dimensions in `out`.
     int storage_properties_dimension_count(const struct StorageProperties* out);
 
+    /// @brief Get the dimension at `index` in `out`.
+    /// @param[in] out The storage properties containing the dimension array.
+    /// @param[in] index The index at which to get the dimension.
+    /// @param[out] dimension The dimension at `index` in `out`.
     int storage_properties_get_dimension(
       const struct StorageProperties* out,
       uint32_t index,
       struct storage_properties_dimension_s* dimension);
 
+    /// @brief Destroy the dimension struct in `out`.
+    /// @param[out] out The dimension struct to destroy.
+    void storage_properties_dimension_destroy(
+      struct storage_properties_dimension_s* self);
+
     /// @brief Set the append dimension in `out`.
-    /// @note The first two dimensions are reserved for image dimensions and are
-    ///       not valid append dimensions.
+    /// @note The first two dimensions are reserved for image dimensions and
+    /// are not valid append dimensions.
     /// @returns 1 on success, otherwise 0
     int storage_properties_set_append_dimension(struct StorageProperties* out,
                                                 uint32_t index);
