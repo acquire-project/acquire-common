@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `reserve_image_shape` is now called in `acquire_configure` rather than `acquire_start`.
-- Users can now specify chunk and shard dimensions in t, c, x, y, and x, as well as the append dimension.
+- Users can now specify chunk and shard acquisition_dimensions in t, c, x, y, and x, as well as the append dimension.
 
 ## 0.2.0 - 2024-01-05
 

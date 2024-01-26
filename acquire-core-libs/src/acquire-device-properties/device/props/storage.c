@@ -85,27 +85,49 @@ int
 storage_properties_insert_dimension(struct StorageProperties* out,
                                     uint32_t index,
                                     const char* name,
+                                    size_t bytes_of_name,
                                     enum DimensionType kind,
                                     uint32_t array_size_px,
                                     uint32_t chunk_size_px,
                                     uint32_t shard_size_chunks)
 {
     CHECK(out);
-    CHECK(countof(out->dimensions) > index);
-    EXPECT(storage_properties_dimension_count(out) < countof(out->dimensions),
+
+    // can only insert at existing dimensions, or append
+    CHECK(storage_properties_dimension_count(out) >= index);
+
+    EXPECT(name, "Dimension name cannot be null.");
+    EXPECT(bytes_of_name > 0, "Bytes of name must be positive.");
+    EXPECT(strlen(name) > 0, "Dimension name cannot be empty.");
+    EXPECT(kind > DimensionType_None && kind < DimensionTypeCount,
+           "Invalid dimension type: %d.",
+           kind);
+
+    EXPECT(storage_properties_dimension_count(out) <
+             countof(out->acquisition_dimensions),
            "Cannot insert dimension. Too many dimensions.");
 
     // shift all dimensions after index up by one
-    for (int i = countof(out->dimensions) - 1; i > index; --i) {
-        out->dimensions[i] = out->dimensions[i - 1];
+    for (int i = countof(out->acquisition_dimensions) - 1; i > index; --i) {
+        out->acquisition_dimensions[i] = out->acquisition_dimensions[i - 1];
     }
-    out->dimensions[index] = (struct Dimension){
-        .name = { .is_ref = 1, .nbytes = strlen(name) + 1, .str = (char*)name },
-        .kind = kind,
-        .array_size_px = array_size_px,
-        .chunk_size_px = chunk_size_px,
-        .shard_size_chunks = shard_size_chunks,
-    };
+
+    out->acquisition_dimensions[index] =
+      (struct storage_properties_dimension_s){
+          .kind = kind,
+          .array_size_px = array_size_px,
+          .chunk_size_px = chunk_size_px,
+          .shard_size_chunks = shard_size_chunks,
+      };
+
+    struct String s = { .is_ref = 1,
+                        .nbytes = bytes_of_name,
+                        .str = (char*)name };
+    if (!copy_string(&out->acquisition_dimensions[index].name, &s)) {
+        out->acquisition_dimensions[index] =
+          (struct storage_properties_dimension_s){ 0 };
+        goto Error;
+    }
 
     return 1;
 Error:
@@ -117,13 +139,14 @@ storage_properties_remove_dimension(struct StorageProperties* out,
                                     uint32_t index)
 {
     CHECK(out);
-    CHECK(index < countof(out->dimensions));
+    CHECK(index < storage_properties_dimension_count(out));
 
     // shift all dimensions after index down by one
-    for (int i = index; i < countof(out->dimensions) - 1; ++i) {
-        out->dimensions[i] = out->dimensions[i + 1];
+    for (int i = index; i < countof(out->acquisition_dimensions) - 1; ++i) {
+        out->acquisition_dimensions[i] = out->acquisition_dimensions[i + 1];
     }
-    out->dimensions[countof(out->dimensions) - 1] = (struct Dimension){ 0 };
+    out->acquisition_dimensions[countof(out->acquisition_dimensions) - 1] =
+      (struct storage_properties_dimension_s){ 0 };
 
     return 1;
 Error:
@@ -134,64 +157,47 @@ int
 storage_properties_dimension_count(const struct StorageProperties* out)
 {
     CHECK(out);
+    const int count = countof(out->acquisition_dimensions);
 
-    for (int i = 0; i < countof(out->dimensions); ++i) {
-        if (out->dimensions[i].kind == DimensionType_None) {
+    for (int i = 0; i < count; ++i) {
+        if (out->acquisition_dimensions[i].kind == DimensionType_None) {
             return i;
         }
     }
+    return count;
 Error:
     return 0;
 }
 
 int
-storage_properties_set_array_extents(struct StorageProperties* out,
-                                     uint32_t x,
-                                     uint32_t y,
-                                     uint32_t z,
-                                     uint32_t c,
-                                     uint32_t t)
+storage_properties_get_dimension(
+  const struct StorageProperties* out,
+  uint32_t index,
+  struct storage_properties_dimension_s* dimension)
 {
     CHECK(out);
-    out->array_extents = (struct storage_properties_array_extents_s){
-        x, y, z, c, t,
-    };
+    CHECK(index < storage_properties_dimension_count(out));
+    CHECK(dimension);
+
+    *dimension = out->acquisition_dimensions[index];
+
     return 1;
 Error:
     return 0;
 }
 
 int
-storage_properties_set_chunking_props(struct StorageProperties* out,
-                                      uint32_t x,
-                                      uint32_t y,
-                                      uint32_t z,
-                                      uint32_t c,
-                                      uint32_t t,
-                                      enum AppendDimension append_dimension)
+storage_properties_set_append_dimension(struct StorageProperties* out,
+                                        uint32_t index)
 {
     CHECK(out);
-    CHECK(append_dimension < AppendDimensionCount);
-    out->chunk_shape = (struct storage_properties_chunk_shape_s){
-        x, y, z, c, t,
-    };
-    out->append_dimension = append_dimension;
-    return 1;
-Error:
-    return 0;
-}
+    EXPECT(index > 1, "Invalid append dimension: %d.", index);
+    EXPECT(index < countof(out->acquisition_dimensions),
+           "Invalid dimension: %d.",
+           index);
 
-int
-storage_properties_set_sharding_props(struct StorageProperties* out,
-                                      uint32_t x,
-                                      uint32_t y,
-                                      uint32_t z,
-                                      uint32_t c,
-                                      uint32_t t)
-{
-    CHECK(out);
-    out->shard_shape_chunks =
-      (struct storage_properties_shard_shape_s){ x, y, z, c, t };
+    out->append_dimension = index;
+
     return 1;
 Error:
     return 0;
@@ -261,8 +267,18 @@ Error:
 void
 storage_properties_destroy(struct StorageProperties* self)
 {
-    struct String* const strings[] = { &self->filename,
-                                       &self->external_metadata_json };
+    struct String* const strings[] = {
+        &self->filename,
+        &self->external_metadata_json,
+        &self->acquisition_dimensions[0].name,
+        &self->acquisition_dimensions[1].name,
+        &self->acquisition_dimensions[2].name,
+        &self->acquisition_dimensions[3].name,
+        &self->acquisition_dimensions[4].name,
+        &self->acquisition_dimensions[5].name,
+        &self->acquisition_dimensions[6].name,
+        &self->acquisition_dimensions[7].name,
+    };
     for (int i = 0; i < countof(strings); ++i) {
         if (strings[i]->is_ref == 0 && strings[i]->str) {
             free(strings[i]->str);
@@ -454,20 +470,34 @@ Error:
 }
 
 int
-unit_test__storage_properties_set_array_extents()
+unit_test__storage_properties_dimension_count()
 {
     struct StorageProperties props = { 0 };
+    CHECK(storage_properties_dimension_count(&props) == 0);
 
-    const uint32_t x = 4, y = 3, z = 2, c = 1, t = 0;
-    CHECK(storage_properties_set_array_extents(&props, x, y, z, c, t));
+    props.acquisition_dimensions[0].kind = DimensionType_Spatial;
+    CHECK(storage_properties_dimension_count(&props) == 1);
 
-    CHECK(x == props.array_extents.x);
-    CHECK(y == props.array_extents.y);
-    CHECK(z == props.array_extents.z);
-    CHECK(c == props.array_extents.c);
-    CHECK(t == props.array_extents.t);
+    props.acquisition_dimensions[1].kind = DimensionType_Spatial;
+    CHECK(storage_properties_dimension_count(&props) == 2);
 
-    storage_properties_destroy(&props);
+    props.acquisition_dimensions[2].kind = DimensionType_Spatial;
+    CHECK(storage_properties_dimension_count(&props) == 3);
+
+    props.acquisition_dimensions[3].kind = DimensionType_Channel;
+    CHECK(storage_properties_dimension_count(&props) == 4);
+
+    props.acquisition_dimensions[4].kind = DimensionType_Channel;
+    CHECK(storage_properties_dimension_count(&props) == 5);
+
+    props.acquisition_dimensions[5].kind = DimensionType_Channel;
+    CHECK(storage_properties_dimension_count(&props) == 6);
+
+    props.acquisition_dimensions[6].kind = DimensionType_Channel;
+    CHECK(storage_properties_dimension_count(&props) == 7);
+
+    props.acquisition_dimensions[7].kind = DimensionType_Time;
+    CHECK(storage_properties_dimension_count(&props) == 8);
 
     return 1;
 Error:
@@ -475,22 +505,103 @@ Error:
 }
 
 int
-unit_test__storage_properties_set_chunking_props()
+unit_test__storage_properties_set_append_dimension()
 {
     struct StorageProperties props = { 0 };
 
-    const uint32_t x = 5, y = 4, z = 3, c = 2, t = 1;
-    CHECK(storage_properties_set_chunking_props(
-      &props, x, y, z, c, t, AppendDimension_C));
+    // x and y are forbidden
+    CHECK(!storage_properties_set_append_dimension(&props, 0));
+    CHECK(!storage_properties_set_append_dimension(&props, 1));
 
-    CHECK(x == props.chunk_shape.x);
-    CHECK(y == props.chunk_shape.y);
-    CHECK(z == props.chunk_shape.z);
-    CHECK(c == props.chunk_shape.c);
-    CHECK(t == props.chunk_shape.t);
-    CHECK(props.append_dimension == AppendDimension_C);
+    for (int i = 2; i < 8; ++i) {
+        CHECK(storage_properties_set_append_dimension(&props, i));
+        CHECK(props.append_dimension == i);
+    }
 
-    storage_properties_destroy(&props);
+    // dimensions higher than 7 don't exist
+    CHECK(!storage_properties_set_append_dimension(&props, 8));
+
+    return 1;
+
+Error:
+    return 0;
+}
+
+int
+unit_test__storage_properties_insert_dimension()
+{
+    struct StorageProperties props = { 0 };
+
+    CHECK(0 == storage_properties_dimension_count(&props));
+
+    // can't skip an entry on insert
+    CHECK(!storage_properties_insert_dimension(
+      &props, 1, "x", 2, DimensionType_Spatial, 1, 1, 1));
+
+    // can't insert with a null char pointer
+    CHECK(!storage_properties_insert_dimension(
+      &props, 0, NULL, 0, DimensionType_Spatial, 1, 1, 1));
+
+    // can't insert with an empty name
+    CHECK(!storage_properties_insert_dimension(
+      &props, 0, "", 0, DimensionType_Spatial, 1, 1, 1));
+
+    // insert at 0
+    CHECK(storage_properties_insert_dimension(
+      &props, 0, "y", 2, DimensionType_Spatial, 1, 1, 1));
+    CHECK(0 == strcmp(props.acquisition_dimensions[0].name.str, "y"));
+    CHECK(props.acquisition_dimensions[0].kind == DimensionType_Spatial);
+    CHECK(props.acquisition_dimensions[0].array_size_px == 1);
+    CHECK(props.acquisition_dimensions[0].chunk_size_px == 1);
+    CHECK(props.acquisition_dimensions[0].shard_size_chunks == 1);
+
+    CHECK(1 == storage_properties_dimension_count(&props));
+
+    // insert at 0 again
+    CHECK(storage_properties_insert_dimension(
+      &props, 0, "x", 2, DimensionType_Spatial, 2, 2, 2));
+    CHECK(0 == strcmp(props.acquisition_dimensions[0].name.str, "x"));
+    CHECK(props.acquisition_dimensions[0].kind == DimensionType_Spatial);
+    CHECK(props.acquisition_dimensions[0].array_size_px == 2);
+    CHECK(props.acquisition_dimensions[0].chunk_size_px == 2);
+    CHECK(props.acquisition_dimensions[0].shard_size_chunks == 2);
+
+    // pushed the previous entry to 1
+    CHECK(0 == strcmp(props.acquisition_dimensions[1].name.str, "y"));
+    CHECK(props.acquisition_dimensions[1].kind == DimensionType_Spatial);
+    CHECK(props.acquisition_dimensions[1].array_size_px == 1);
+    CHECK(props.acquisition_dimensions[1].chunk_size_px == 1);
+    CHECK(props.acquisition_dimensions[1].shard_size_chunks == 1);
+
+    CHECK(2 == storage_properties_dimension_count(&props));
+
+    // insert at 2
+    CHECK(storage_properties_insert_dimension(
+      &props, 2, "z", 2, DimensionType_Spatial, 3, 3, 3));
+    CHECK(0 == strcmp(props.acquisition_dimensions[2].name.str, "z"));
+    CHECK(props.acquisition_dimensions[2].kind == DimensionType_Spatial);
+    CHECK(props.acquisition_dimensions[2].array_size_px == 3);
+    CHECK(props.acquisition_dimensions[2].chunk_size_px == 3);
+    CHECK(props.acquisition_dimensions[2].shard_size_chunks == 3);
+
+    // check previous entries, ensure no change
+    CHECK(0 == strcmp(props.acquisition_dimensions[0].name.str, "x"));
+    CHECK(props.acquisition_dimensions[0].kind == DimensionType_Spatial);
+    CHECK(props.acquisition_dimensions[0].array_size_px == 2);
+    CHECK(props.acquisition_dimensions[0].chunk_size_px == 2);
+    CHECK(props.acquisition_dimensions[0].shard_size_chunks == 2);
+
+    CHECK(0 == strcmp(props.acquisition_dimensions[1].name.str, "y"));
+    CHECK(props.acquisition_dimensions[1].kind == DimensionType_Spatial);
+    CHECK(props.acquisition_dimensions[1].array_size_px == 1);
+    CHECK(props.acquisition_dimensions[1].chunk_size_px == 1);
+    CHECK(props.acquisition_dimensions[1].shard_size_chunks == 1);
+
+    CHECK(3 == storage_properties_dimension_count(&props));
+
+    // can't insert at 4 (would skip an entry)
+    CHECK(!storage_properties_insert_dimension(
+      &props, 4, "t", 2, DimensionType_Time, 1, 1, 1));
 
     return 1;
 Error:
@@ -498,32 +609,82 @@ Error:
 }
 
 int
-unit_test__storage_properties_default_append_dimension_is_t()
+unit_test__storage_properties_remove_dimension()
 {
     struct StorageProperties props = { 0 };
-    CHECK(props.append_dimension == AppendDimension_T);
+    CHECK(0 == storage_properties_dimension_count(&props));
+
+    // can't remove at 0
+    CHECK(!storage_properties_remove_dimension(&props, 0));
+
+    // insert at 0
+    CHECK(storage_properties_insert_dimension(
+      &props, 0, "y", 2, DimensionType_Spatial, 1, 1, 1));
+    CHECK(0 == strcmp(props.acquisition_dimensions[0].name.str, "y"));
+    CHECK(props.acquisition_dimensions[0].kind == DimensionType_Spatial);
+    CHECK(props.acquisition_dimensions[0].array_size_px == 1);
+    CHECK(props.acquisition_dimensions[0].chunk_size_px == 1);
+    CHECK(props.acquisition_dimensions[0].shard_size_chunks == 1);
+
+    CHECK(1 == storage_properties_dimension_count(&props));
+
+    // remove at 0
+    CHECK(storage_properties_remove_dimension(&props, 0));
+
+    CHECK(0 == storage_properties_dimension_count(&props));
+    CHECK(NULL == props.acquisition_dimensions[0].name.str);
+    CHECK(props.acquisition_dimensions[0].kind == DimensionType_None);
+    CHECK(props.acquisition_dimensions[0].array_size_px == 0);
+    CHECK(props.acquisition_dimensions[0].chunk_size_px == 0);
+    CHECK(props.acquisition_dimensions[0].shard_size_chunks == 0);
+
     return 1;
 Error:
     return 0;
 }
 
 int
-unit_test__storage_properties_set_sharding_props()
+unit_test__storage_properties_get_dimension()
 {
     struct StorageProperties props = { 0 };
+    CHECK(0 == storage_properties_dimension_count(&props));
 
-    const uint32_t x = 5, y = 4, z = 3, c = 2, t = 1;
-    CHECK(storage_properties_set_sharding_props(&props, x, y, z, c, t));
+    // trying to get an out of bounds dimension will fail
+    struct storage_properties_dimension_s dim = { 0 };
+    CHECK(!storage_properties_get_dimension(&props, 0, &dim));
 
-    CHECK(x == props.shard_shape_chunks.x);
-    CHECK(y == props.shard_shape_chunks.y);
-    CHECK(z == props.shard_shape_chunks.z);
-    CHECK(c == props.shard_shape_chunks.c);
-    CHECK(t == props.shard_shape_chunks.t);
+    // check before we alter it
+    CHECK(NULL == dim.name.str);
+    CHECK(dim.kind == DimensionType_None);
+    CHECK(dim.array_size_px == 0);
+    CHECK(dim.chunk_size_px == 0);
+    CHECK(dim.shard_size_chunks == 0);
 
-    storage_properties_destroy(&props);
+    // insert at 0
+    CHECK(storage_properties_insert_dimension(
+      &props, 0, "x", 2, DimensionType_Spatial, 1, 1, 1));
+
+    // get at 0
+    CHECK(storage_properties_get_dimension(&props, 0, &dim));
+    CHECK(0 == strcmp(dim.name.str, "x"));
+    CHECK(dim.kind == DimensionType_Spatial);
+    CHECK(dim.array_size_px == 1);
+    CHECK(dim.chunk_size_px == 1);
+    CHECK(dim.shard_size_chunks == 1);
+
+    // trying to get an oob dimension will still fail
+    CHECK(!storage_properties_get_dimension(&props, 1, &dim));
+
+    // should be unaltered
+    CHECK(storage_properties_get_dimension(&props, 0, &dim));
+    CHECK(0 == strcmp(dim.name.str, "x"));
+    CHECK(dim.kind == DimensionType_Spatial);
+    CHECK(dim.array_size_px == 1);
+    CHECK(dim.chunk_size_px == 1);
+    CHECK(dim.shard_size_chunks == 1);
 
     return 1;
+
 Error:
     return 0;
 }
