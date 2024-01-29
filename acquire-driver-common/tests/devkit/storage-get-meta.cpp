@@ -72,6 +72,8 @@ main()
                 storage = containerof(device, struct Storage, device);
 
                 CHECK(Device_Ok == storage_get_meta(storage, &metadata));
+                CHECK(0 == metadata.chunking.is_supported);
+                CHECK(0 == metadata.sharding.is_supported);
                 CHECK(0 == metadata.multiscale.is_supported);
 
                 CHECK(Device_Ok == driver_close_device(device));
