@@ -224,7 +224,6 @@ storage_properties_set_append_dimension(struct StorageProperties* out,
                                         uint32_t index)
 {
     CHECK(out);
-    EXPECT(index > 1, "Invalid append dimension: %d.", index);
     EXPECT(index < countof(out->acquisition_dimensions),
            "Invalid dimension: %d.",
            index);
@@ -536,11 +535,7 @@ unit_test__storage_properties_set_append_dimension()
 {
     struct StorageProperties props = { 0 };
 
-    // x and y are forbidden
-    CHECK(!storage_properties_set_append_dimension(&props, 0));
-    CHECK(!storage_properties_set_append_dimension(&props, 1));
-
-    for (int i = 2; i < 8; ++i) {
+    for (int i = 0; i < 8; ++i) {
         CHECK(storage_properties_set_append_dimension(&props, i));
         CHECK(props.append_dimension == i);
     }
