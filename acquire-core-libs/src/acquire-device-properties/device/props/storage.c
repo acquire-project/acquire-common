@@ -59,6 +59,23 @@ Error:
     return 0;
 }
 
+static void
+storage_properties_dimensions__init_array(struct StorageDimension** data,
+                                          size_t size)
+{
+    if (!*data) {
+        *data = malloc(size * sizeof(struct StorageDimension));
+    }
+}
+
+static void
+storage_properties_dimensions__destroy_array(struct StorageDimension* data)
+{
+    if (data) {
+        free(data);
+    }
+}
+
 int
 storage_properties_set_filename(struct StorageProperties* out,
                                 const char* filename,
@@ -82,20 +99,20 @@ storage_properties_set_external_metadata(struct StorageProperties* out,
 }
 
 int
-dimension_init(struct Dimension* out,
-               const char* name,
-               size_t bytes_of_name,
-               enum DimensionType kind,
-               uint32_t array_size_px,
-               uint32_t chunk_size_px,
-               uint32_t shard_size_chunks)
+storage_dimension_init(struct StorageDimension* out,
+                       const char* name,
+                       size_t bytes_of_name,
+                       enum DimensionType kind,
+                       uint32_t array_size_px,
+                       uint32_t chunk_size_px,
+                       uint32_t shard_size_chunks)
 {
     CHECK(out);
 
     EXPECT(name, "Dimension name cannot be null.");
     EXPECT(bytes_of_name > 0, "Bytes of name must be positive.");
     EXPECT(strlen(name) > 0, "Dimension name cannot be empty.");
-    EXPECT(kind > DimensionType_None && kind < DimensionTypeCount,
+    EXPECT(kind < DimensionTypeCount,
            "Invalid dimension type: %s.",
            dimension_type_as_string(kind));
 
@@ -117,7 +134,8 @@ Error:
 }
 
 int
-dimension_copy(struct Dimension* dst, const struct Dimension* src)
+storage_dimension_copy(struct StorageDimension* dst,
+                       const struct StorageDimension* src)
 {
     CHECK(dst);
     CHECK(src);
@@ -134,7 +152,7 @@ Error:
 }
 
 void
-dimension_destroy(struct Dimension* self)
+storage_dimension_destroy(struct StorageDimension* self)
 {
     CHECK(self);
 
@@ -147,54 +165,35 @@ Error:;
 }
 
 int
-storage_properties_acquisition_dimensions_push_back(
-  struct StorageProperties* out,
-  const struct Dimension* dimension)
+storage_properties_dimensions_init(struct storage_properties_dimensions_s* self,
+                                   size_t size)
 {
-    CHECK(out);
-    CHECK(dimension);
+    CHECK(self);
+    CHECK(size > 0);
+    CHECK(self->init);
+    CHECK(self->data == NULL);
 
-    if (!out->acquisition_dimensions.data) {
-        out->acquisition_dimensions = (struct storage_properties_dimensions_s){
-            .capacity = 4,
-            .size = 0,
-            .data = malloc(4 * sizeof(struct Dimension)) // NOLINT
-        };
-        CHECK(out->acquisition_dimensions.data);
-    } else if (out->acquisition_dimensions.size ==
-               out->acquisition_dimensions.capacity) {
-        out->acquisition_dimensions.capacity *= 2;
+    (self->init)(&self->data, size);
+    CHECK(self->data);
 
-        struct Dimension* const new_data =
-          realloc(out->acquisition_dimensions.data,
-                  out->acquisition_dimensions.capacity *
-                    sizeof(struct Dimension)); // NOLINT
-        CHECK(new_data);
-        out->acquisition_dimensions.data = new_data;
-    }
+    self->size = size;
 
-    return dimension_copy(out->acquisition_dimensions.data +
-                            out->acquisition_dimensions.size++,
-                          dimension);
+    return 1;
 Error:
     return 0;
 }
 
 int
-storage_properties_acquisition_dimensions_remove(struct StorageProperties* out,
-                                                 uint32_t index)
+storage_properties_dimensions_destroy(
+  struct storage_properties_dimensions_s* self)
 {
-    CHECK(out);
-    CHECK(index < out->acquisition_dimensions.size);
+    CHECK(self);
+    CHECK(self->destroy);
+    CHECK(self->data);
 
-    dimension_destroy(&out->acquisition_dimensions.data[index]);
-    for (int i = index; i < out->acquisition_dimensions.size - 1; ++i) {
-        out->acquisition_dimensions.data[i] =
-          out->acquisition_dimensions.data[i + 1];
-    }
-    out->acquisition_dimensions.data[out->acquisition_dimensions.size - 1] =
-      (struct Dimension){ 0 }; // NOLINT
-    --out->acquisition_dimensions.size;
+    (self->destroy)(self->data);
+    self->data = NULL;
+    self->size = 0;
 
     return 1;
 Error:
@@ -274,29 +273,21 @@ storage_properties_destroy(struct StorageProperties* self)
         }
     }
 
-    if (self->acquisition_dimensions.data) {
-        for (int i = 0; i < self->acquisition_dimensions.size; ++i) {
-            dimension_destroy(self->acquisition_dimensions.data + i);
-        }
-        free(self->acquisition_dimensions.data);
-        memset(&self->acquisition_dimensions,
-               0,
-               sizeof(self->acquisition_dimensions));
-    }
+    storage_properties_dimensions_destroy(&self->acquisition_dimensions);
 }
 
 const char*
 dimension_type_as_string(enum DimensionType type)
 {
     switch (type) {
-        case DimensionType_None:
-            return "None";
-        case DimensionType_Spatial:
+        case DimensionType_Space:
             return "Spatial";
         case DimensionType_Channel:
             return "Channel";
         case DimensionType_Time:
             return "Time";
+        case DimensionType_Other:
+            return "Other";
         default:
             return "(unknown)";
     }
@@ -487,51 +478,44 @@ Error:
 int
 unit_test__dimension_init()
 {
-    struct Dimension dim = { 0 };
+    struct StorageDimension dim = { 0 };
 
     // can't init with a null char pointer
-    CHECK(!dimension_init(&dim, NULL, 0, DimensionType_Spatial, 1, 1, 1));
+    CHECK(!storage_dimension_init(&dim, NULL, 0, DimensionType_Space, 1, 1, 1));
     CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_None);
+    CHECK(dim.kind == DimensionType_Space);
     CHECK(dim.array_size_px == 0);
     CHECK(dim.chunk_size_px == 0);
     CHECK(dim.shard_size_chunks == 0);
 
     // can't init with 0 bytes
-    CHECK(!dimension_init(&dim, "", 0, DimensionType_Spatial, 1, 1, 1));
+    CHECK(!storage_dimension_init(&dim, "", 0, DimensionType_Space, 1, 1, 1));
     CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_None);
+    CHECK(dim.kind == DimensionType_Space);
     CHECK(dim.array_size_px == 0);
     CHECK(dim.chunk_size_px == 0);
     CHECK(dim.shard_size_chunks == 0);
 
     // can't init with an empty name
-    CHECK(!dimension_init(&dim, "", 1, DimensionType_Spatial, 1, 1, 1));
+    CHECK(!storage_dimension_init(&dim, "", 1, DimensionType_Space, 1, 1, 1));
     CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_None);
+    CHECK(dim.kind == DimensionType_Space);
     CHECK(dim.array_size_px == 0);
     CHECK(dim.chunk_size_px == 0);
     CHECK(dim.shard_size_chunks == 0);
 
     // can't init with an invalid dimension type
-    CHECK(!dimension_init(&dim, "x", 2, DimensionType_None, 1, 1, 1));
+    CHECK(!storage_dimension_init(&dim, "x", 2, DimensionTypeCount, 1, 1, 1));
     CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_None);
-    CHECK(dim.array_size_px == 0);
-    CHECK(dim.chunk_size_px == 0);
-    CHECK(dim.shard_size_chunks == 0);
-
-    CHECK(!dimension_init(&dim, "x", 2, DimensionTypeCount, 1, 1, 1));
-    CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_None);
+    CHECK(dim.kind == DimensionType_Space);
     CHECK(dim.array_size_px == 0);
     CHECK(dim.chunk_size_px == 0);
     CHECK(dim.shard_size_chunks == 0);
 
     // init with valid values
-    CHECK(dimension_init(&dim, "x", 2, DimensionType_Spatial, 1, 1, 1));
+    CHECK(storage_dimension_init(&dim, "x", 2, DimensionType_Space, 1, 1, 1));
     CHECK(0 == strcmp(dim.name.str, "x"));
-    CHECK(dim.kind == DimensionType_Spatial);
+    CHECK(dim.kind == DimensionType_Space);
     CHECK(dim.array_size_px == 1);
     CHECK(dim.chunk_size_px == 1);
     CHECK(dim.shard_size_chunks == 1);
@@ -542,70 +526,17 @@ Error:
 }
 
 int
-unit_test__storage_properties_acquisition_dimensions_push_back()
+unit_test__storage_properties_dimensions_init()
 {
     struct StorageProperties props = { 0 };
-    struct Dimension dim = { 0 };
+    props.acquisition_dimensions.init =
+      storage_properties_dimensions__init_array;
+    CHECK(storage_properties_dimensions_init(&props.acquisition_dimensions, 5));
 
-    // can't push a null dimension
-    CHECK(!storage_properties_acquisition_dimensions_push_back(&props, NULL));
-    CHECK(NULL == props.acquisition_dimensions.data);
-    CHECK(0 == props.acquisition_dimensions.size);
-    CHECK(0 == props.acquisition_dimensions.capacity);
+    CHECK(props.acquisition_dimensions.size == 5);
+    CHECK(props.acquisition_dimensions.data != NULL);
 
-    CHECK(dimension_init(&dim, "x", 2, DimensionType_Spatial, 1, 1, 1));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    // check the bookkeeping is right
-    CHECK(1 == props.acquisition_dimensions.size);
-    CHECK(4 == props.acquisition_dimensions.capacity);
-
-    // check the values were copied correctly
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[0].name.str, "x"));
-    CHECK(props.acquisition_dimensions.data[0].kind == DimensionType_Spatial);
-    CHECK(props.acquisition_dimensions.data[0].array_size_px == 1);
-    CHECK(props.acquisition_dimensions.data[0].chunk_size_px == 1);
-    CHECK(props.acquisition_dimensions.data[0].shard_size_chunks == 1);
-
-    // push another dimension
-    CHECK(dimension_init(&dim, "y", 2, DimensionType_Spatial, 2, 2, 2));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    // check the bookkeeping is right
-    CHECK(2 == props.acquisition_dimensions.size);
-    CHECK(4 == props.acquisition_dimensions.capacity);
-
-    // check the values were copied correctly
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[1].name.str, "y"));
-    CHECK(props.acquisition_dimensions.data[1].kind == DimensionType_Spatial);
-    CHECK(props.acquisition_dimensions.data[1].array_size_px == 2);
-    CHECK(props.acquisition_dimensions.data[1].chunk_size_px == 2);
-    CHECK(props.acquisition_dimensions.data[1].shard_size_chunks == 2);
-
-    // push back a few more dimensions to increase capacity
-    CHECK(dimension_init(&dim, "z", 2, DimensionType_Spatial, 3, 3, 3));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    CHECK(dimension_init(&dim, "c", 2, DimensionType_Channel, 4, 4, 4));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    // check the bookkeeping is right
-    CHECK(4 == props.acquisition_dimensions.size);
-    CHECK(4 == props.acquisition_dimensions.capacity);
-
-    CHECK(dimension_init(&dim, "t", 2, DimensionType_Time, 5, 5, 5));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    // check the bookkeeping is right
-    CHECK(5 == props.acquisition_dimensions.size);
-    CHECK(8 == props.acquisition_dimensions.capacity);
-
-    storage_properties_destroy(&props);
+    free(props.acquisition_dimensions.data);
 
     return 1;
 Error:
@@ -613,73 +544,19 @@ Error:
 }
 
 int
-unit_test__storage_properties_acquisition_dimensions_remove()
+unit_test__storage_properties_dimensions_destroy()
 {
     struct StorageProperties props = { 0 };
-    struct Dimension dim = { 0 };
+    props.acquisition_dimensions.destroy =
+      storage_properties_dimensions__destroy_array;
 
-    // push back 5 dimensions
-    CHECK(dimension_init(&dim, "x", 2, DimensionType_Spatial, 1, 1, 1));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
+    props.acquisition_dimensions.data =
+      malloc(5 * sizeof(struct StorageDimension));
+    props.acquisition_dimensions.size = 5;
 
-    CHECK(dimension_init(&dim, "y", 2, DimensionType_Spatial, 2, 2, 2));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    CHECK(dimension_init(&dim, "z", 2, DimensionType_Spatial, 3, 3, 3));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    CHECK(dimension_init(&dim, "c", 2, DimensionType_Channel, 4, 4, 4));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    CHECK(dimension_init(&dim, "t", 2, DimensionType_Channel, 5, 5, 5));
-    CHECK(storage_properties_acquisition_dimensions_push_back(&props, &dim));
-    dimension_destroy(&dim);
-
-    // remove the first dimension
-    CHECK(storage_properties_acquisition_dimensions_remove(&props, 0));
-
-    // size should change
-    CHECK(4 == props.acquisition_dimensions.size);
-    // capacity should not change
-    CHECK(8 == props.acquisition_dimensions.capacity);
-
-    // everything else should be shifted down
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[0].name.str, "y"));
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[1].name.str, "z"));
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[2].name.str, "c"));
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[3].name.str, "t"));
-
-    // remove the last dimension
-    CHECK(storage_properties_acquisition_dimensions_remove(&props, 3));
-
-    // size should change
-    CHECK(3 == props.acquisition_dimensions.size);
-    // capacity should not change
-    CHECK(8 == props.acquisition_dimensions.capacity);
-
-    // everything else should remain in place
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[0].name.str, "y"));
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[1].name.str, "z"));
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[2].name.str, "c"));
-
-    // remove the middle dimension
-    CHECK(storage_properties_acquisition_dimensions_remove(&props, 1));
-
-    // size should change
-    CHECK(2 == props.acquisition_dimensions.size);
-    // capacity should not change
-    CHECK(8 == props.acquisition_dimensions.capacity);
-
-    // the first dimension should remain, the last dimension should have shifted
-    // down
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[0].name.str, "y"));
-    CHECK(0 == strcmp(props.acquisition_dimensions.data[1].name.str, "c"));
-
-    storage_properties_destroy(&props);
+    CHECK(storage_properties_dimensions_destroy(&props.acquisition_dimensions));
+    CHECK(props.acquisition_dimensions.size == 0);
+    CHECK(props.acquisition_dimensions.data == NULL);
 
     return 1;
 Error:
