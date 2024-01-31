@@ -20,6 +20,25 @@ extern "C"
         DimensionTypeCount
     };
 
+    struct Dimension
+    {
+        // the name of the dimension as it appears in the metadata, e.g.,
+        // "x", "y", "z", "c", "t"
+        struct String name;
+
+        // the type of dimension, e.g., spatial, channel, time
+        enum DimensionType kind;
+
+        // the expected size of the full output array along this dimension
+        uint32_t array_size_px;
+
+        // the size of a chunk along this dimension
+        uint32_t chunk_size_px;
+
+        // the number of chunks in a shard along this dimension
+        uint32_t shard_size_chunks;
+    };
+
     /// Properties for a storage driver.
     struct StorageProperties
     {
@@ -31,26 +50,12 @@ extern "C"
         /// Dimensions of the output array, with array extents, chunk sizes, and
         /// shard sizes. The first dimension is the fastest varying dimension.
         /// The last dimension is the append dimension.
-        struct storage_properties_dimension_s
+        struct storage_properties_dimensions_s
         {
-            // the name of the dimension as it appears in the metadata, e.g.,
-            // "x", "y", "z", "c", "t"
-            struct String name;
-
-            // the type of dimension, e.g., spatial, channel, time
-            enum DimensionType kind;
-
-            // the expected size of the full output array along this dimension
-            uint32_t array_size_px;
-
-            // the size of a chunk along this dimension
-            uint32_t chunk_size_px;
-
-            // the number of chunks in a shard along this dimension
-            uint32_t shard_size_chunks;
-        } acquisition_dimensions[8];
-
-        uint8_t append_dimension;
+            struct Dimension* data;
+            size_t size;
+            size_t capacity;
+        } acquisition_dimensions;
 
         /// Enable multiscale storage if true.
         uint8_t enable_multiscale;
@@ -127,8 +132,8 @@ extern "C"
                                                  const char* metadata,
                                                  size_t bytes_of_metadata);
 
-    /// @brief Initialize the dimension struct in `out`.
-    /// @param[out] out The dimension struct to initialize.
+    /// @brief Initialize the Dimension struct in `out`.
+    /// @param[out] out The Dimension struct to initialize.
     /// @param[in] name The name of the dimension.
     /// @param[in] bytes_of_name The number of bytes in the name buffer.
     ///                          Should include the terminating NULL.
@@ -138,68 +143,41 @@ extern "C"
     /// @param[in] shard_size_chunks The number of chunks in a shard along this
     ///                              dimension.
     /// @returns 1 on success, otherwise 0
-    int storage_properties_dimension_init(
-      struct storage_properties_dimension_s* out,
-      const char* name,
-      size_t bytes_of_name,
-      enum DimensionType kind,
-      uint32_t array_size_px,
-      uint32_t chunk_size_px,
-      uint32_t shard_size_chunks);
+    int dimension_init(struct Dimension* out,
+                       const char* name,
+                       size_t bytes_of_name,
+                       enum DimensionType kind,
+                       uint32_t array_size_px,
+                       uint32_t chunk_size_px,
+                       uint32_t shard_size_chunks);
 
-    /// @brief Insert a dimension into `out` at `index`.
-    /// @param[out] out The storage properties containing the dimension array.
-    /// @param[in] index The index at which to insert the dimension.
-    /// @param[in] name The name of the dimension.
-    /// @param[in] bytes_of_name The number of bytes in the name buffer.
-    ///                          Should include the terminating NULL.
-    /// @param[in] kind The type of dimension.
-    /// @param[in] array_size_px The size of the array along this dimension.
-    /// @param[in] chunk_size_px The size of a chunk along this dimension.
-    /// @param[in] shard_size_chunks The number of chunks in a shard along this
-    ///                              dimension.
+    /// @brief Copy the Dimension struct in `src` to `dst`.
+    /// @param[out] dst The Dimension struct to copy to.
+    /// @param[in] src The Dimension struct to copy from.
     /// @returns 1 on success, otherwise 0
-    int storage_properties_dimension_insert(struct StorageProperties* out,
-                                            uint32_t index,
-                                            const char* name,
-                                            size_t bytes_of_name,
-                                            enum DimensionType kind,
-                                            uint32_t array_size_px,
-                                            uint32_t chunk_size_px,
-                                            uint32_t shard_size_chunks);
+    int dimension_copy(struct Dimension* dst, const struct Dimension* src);
+
+    /// @brief Destroy the Dimension struct in `out`.
+    /// @param[out] out The Dimension struct to destroy.
+    void dimension_destroy(struct Dimension* self);
+
+    /// @brief Append a dimension to `out`.
+    /// @note Incurs a copy of the dimension. The original dimension is safe to
+    ///       destroy after this call.
+    /// @param[out] out The storage properties containing the dimension array.
+    /// @param[in] dimension The dimension to append.
+    /// @returns 1 on success, otherwise 0
+    int storage_properties_acquisition_dimensions_push_back(
+      struct StorageProperties* out,
+      const struct Dimension* dimension);
 
     /// @brief Remove a dimension from `out` at `index`.
     /// @param[out] out The storage properties containing the dimension array.
     /// @param[in] index The index at which to remove the dimension.
     /// @returns 1 on success, otherwise 0
-    int storage_properties_dimension_remove(struct StorageProperties* out,
-                                            uint32_t index);
-
-    /// @brief Get the number of dimensions in `out`.
-    /// @param[in] out The storage properties containing the dimension array.
-    /// @returns The number of dimensions in `out`.
-    int storage_properties_dimension_count(const struct StorageProperties* out);
-
-    /// @brief Get the dimension at `index` in `out`.
-    /// @param[in] out The storage properties containing the dimension array.
-    /// @param[in] index The index at which to get the dimension.
-    /// @param[out] dimension The dimension at `index` in `out`.
-    int storage_properties_dimension_get(
-      const struct StorageProperties* out,
-      uint32_t index,
-      struct storage_properties_dimension_s* dimension);
-
-    /// @brief Destroy the dimension struct in `out`.
-    /// @param[out] out The dimension struct to destroy.
-    void storage_properties_dimension_destroy(
-      struct storage_properties_dimension_s* self);
-
-    /// @brief Set the append dimension in `out`.
-    /// @note The first two dimensions are reserved for image dimensions and
-    /// are not valid append dimensions.
-    /// @returns 1 on success, otherwise 0
-    int storage_properties_set_append_dimension(struct StorageProperties* out,
-                                                uint32_t index);
+    int storage_properties_acquisition_dimensions_remove(
+      struct StorageProperties* out,
+      uint32_t index);
 
     /// @brief Set multiscale properties for `out`.
     /// Convenience function to enable multiscale.
@@ -211,6 +189,8 @@ extern "C"
 
     /// Free's allocated string storage.
     void storage_properties_destroy(struct StorageProperties* self);
+
+    const char* dimension_type_as_string(enum DimensionType type);
 
 #ifdef __cplusplus
 }

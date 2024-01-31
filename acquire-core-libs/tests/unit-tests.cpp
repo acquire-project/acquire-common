@@ -70,14 +70,13 @@ extern "C"
     // device-properties
     int unit_test__storage__storage_property_string_check();
     int unit_test__storage__copy_string();
-    int unit_test__storage_properties_dimension_count();
-    int unit_test__storage_properties_set_append_dimension();
-    int unit_test__storage_properties_insert_dimension();
-    int unit_test__storage_properties_remove_dimension();
-    int unit_test__storage_properties_get_dimension();
+    int unit_test__dimension_init();
+    int unit_test__storage_properties_acquisition_dimensions_push_back();
+    int unit_test__storage_properties_acquisition_dimensions_remove();
     int unit_test__device_state_as_string__is_defined_for_all();
     int unit_test__device_kind_as_string__is_defined_for_all();
     int unit_test__sample_type_as_string__is_defined_for_all();
+    int unit_test__dimension_type_as_string__is_defined_for_all();
     int unit_test__bytes_of_type__is_defined_for_all();
 }
 
@@ -99,14 +98,13 @@ main()
         CASE(unit_test__monotonic_clock_increases_monotonically),
         CASE(unit_test__storage__storage_property_string_check),
         CASE(unit_test__storage__copy_string),
-        CASE(unit_test__storage_properties_dimension_count),
-        CASE(unit_test__storage_properties_set_append_dimension),
-        CASE(unit_test__storage_properties_insert_dimension),
-        CASE(unit_test__storage_properties_remove_dimension),
-        CASE(unit_test__storage_properties_get_dimension),
+        CASE(unit_test__dimension_init),
+        CASE(unit_test__storage_properties_acquisition_dimensions_push_back),
+        CASE(unit_test__storage_properties_acquisition_dimensions_remove),
         CASE(unit_test__device_state_as_string__is_defined_for_all),
         CASE(unit_test__device_kind_as_string__is_defined_for_all),
         CASE(unit_test__sample_type_as_string__is_defined_for_all),
+        CASE(unit_test__dimension_type_as_string__is_defined_for_all),
         CASE(unit_test__bytes_of_type__is_defined_for_all),
 #undef CASE
     };
