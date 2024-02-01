@@ -181,13 +181,21 @@ extern "C"
     /// @param[out] self The Dimension struct to destroy.
     void storage_dimension_destroy(struct StorageDimension* self);
 
-    int storage_properties_dimensions_init(
-      struct storage_properties_dimensions_s* self,
-      size_t size);
+    /// @brief Initialize the acquisition_dimensions array in `self`.
+    /// @param[out] self The StorageProperties struct containing the array to
+    ///                  initialize.
+    /// @param[in] size The number of dimensions to allocate.
+    /// @returns 1 on success, otherwise 0
+    int storage_properties_dimensions_init(struct StorageProperties* self,
+                                           size_t size);
 
-    int storage_properties_dimensions_destroy(
-      struct storage_properties_dimensions_s* self);
+    /// @brief Free the acquisition_dimensions array in `self`.
+    /// @param[out] self The StorageProperties struct containing the array to
+    ///                  destroy.
+    /// @returns 1 on success, otherwise 0
+    int storage_properties_dimensions_destroy(struct StorageProperties* self);
 
+    /// @brief Convert a DimensionType to a string.
     const char* dimension_type_as_string(enum DimensionType type);
 
 #ifdef __cplusplus

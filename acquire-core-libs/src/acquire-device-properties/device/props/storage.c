@@ -165,18 +165,18 @@ Error:;
 }
 
 int
-storage_properties_dimensions_init(struct storage_properties_dimensions_s* self,
-                                   size_t size)
+storage_properties_dimensions_init(struct StorageProperties* self, size_t size)
 {
     CHECK(self);
     CHECK(size > 0);
-    CHECK(self->init);
-    CHECK(self->data == NULL);
+    CHECK(self->acquisition_dimensions.init);
+    CHECK(self->acquisition_dimensions.data == NULL);
 
-    (self->init)(&self->data, size);
-    CHECK(self->data);
+    (self->acquisition_dimensions.init)(&self->acquisition_dimensions.data,
+                                        size);
+    CHECK(self->acquisition_dimensions.data);
 
-    self->size = size;
+    self->acquisition_dimensions.size = size;
 
     return 1;
 Error:
@@ -184,16 +184,15 @@ Error:
 }
 
 int
-storage_properties_dimensions_destroy(
-  struct storage_properties_dimensions_s* self)
+storage_properties_dimensions_destroy(struct StorageProperties* self)
 {
     CHECK(self);
-    CHECK(self->destroy);
-    CHECK(self->data);
+    CHECK(self->acquisition_dimensions.destroy);
+    CHECK(self->acquisition_dimensions.data);
 
-    (self->destroy)(self->data);
-    self->data = NULL;
-    self->size = 0;
+    (self->acquisition_dimensions.destroy)(self->acquisition_dimensions.data);
+    self->acquisition_dimensions.data = NULL;
+    self->acquisition_dimensions.size = 0;
 
     return 1;
 Error:
@@ -273,7 +272,7 @@ storage_properties_destroy(struct StorageProperties* self)
         }
     }
 
-    storage_properties_dimensions_destroy(&self->acquisition_dimensions);
+    storage_properties_dimensions_destroy(self);
 }
 
 const char*
@@ -531,7 +530,7 @@ unit_test__storage_properties_dimensions_init()
     struct StorageProperties props = { 0 };
     props.acquisition_dimensions.init =
       storage_properties_dimensions__init_array;
-    CHECK(storage_properties_dimensions_init(&props.acquisition_dimensions, 5));
+    CHECK(storage_properties_dimensions_init(&props, 5));
 
     CHECK(props.acquisition_dimensions.size == 5);
     CHECK(props.acquisition_dimensions.data != NULL);
@@ -554,7 +553,7 @@ unit_test__storage_properties_dimensions_destroy()
       malloc(5 * sizeof(struct StorageDimension));
     props.acquisition_dimensions.size = 5;
 
-    CHECK(storage_properties_dimensions_destroy(&props.acquisition_dimensions));
+    CHECK(storage_properties_dimensions_destroy(&props));
     CHECK(props.acquisition_dimensions.size == 0);
     CHECK(props.acquisition_dimensions.data == NULL);
 
