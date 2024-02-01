@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `reserve_image_shape` is now called in `acquire_configure` rather than `acquire_start`.
-- Users can now specify the names, ordering, and number of acquisition dimensions, as well as the append dimension.
+- Users can now specify the names, ordering, and number of acquisition dimensions.
 
 ## 0.2.0 - 2024-01-05
 
