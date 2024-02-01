@@ -4,7 +4,7 @@ else ()
     #
     # PARAMETERS
     #
-    set(project acquire-driver-runtime) # CMAKE_PROJECT_NAME gets overridden if this is a subtree of another project
+    set(project acquire-video-runtime) # CMAKE_PROJECT_NAME gets overridden if this is a subtree of another project
     set(driver acquire-driver-common)
 
     #
