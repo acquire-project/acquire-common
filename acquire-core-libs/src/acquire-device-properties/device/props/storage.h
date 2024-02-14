@@ -71,20 +71,9 @@ extern "C"
 
     struct StoragePropertyMetadata
     {
-        struct storage_property_metadata_chunking_s
-        {
-            uint8_t is_supported;
-        } chunking;
-
-        struct storage_property_metadata_sharding_s
-        {
-            uint8_t is_supported;
-        } sharding;
-
-        struct storage_property_metadata_multiscale_s
-        {
-            uint8_t is_supported;
-        } multiscale;
+        uint8_t chunking_is_supported;
+        uint8_t sharding_is_supported;
+        uint8_t multiscale_is_supported;
     };
 
     /// Initializes StorageProperties, allocating string storage on the heap
