@@ -59,6 +59,23 @@ Error:
     return 0;
 }
 
+static const char*
+dimension_type_as_string(enum DimensionType type)
+{
+    switch (type) {
+        case DimensionType_Space:
+            return "Spatial";
+        case DimensionType_Channel:
+            return "Channel";
+        case DimensionType_Time:
+            return "Time";
+        case DimensionType_Other:
+            return "Other";
+        default:
+            return "(unknown)";
+    }
+}
+
 static void
 storage_properties_dimensions__init_array(struct StorageDimension** data,
                                           size_t size)
@@ -273,23 +290,6 @@ storage_properties_destroy(struct StorageProperties* self)
     }
 
     storage_properties_dimensions_destroy(self);
-}
-
-const char*
-dimension_type_as_string(enum DimensionType type)
-{
-    switch (type) {
-        case DimensionType_Space:
-            return "Spatial";
-        case DimensionType_Channel:
-            return "Channel";
-        case DimensionType_Time:
-            return "Time";
-        case DimensionType_Other:
-            return "Other";
-        default:
-            return "(unknown)";
-    }
 }
 
 #ifndef NO_UNIT_TESTS

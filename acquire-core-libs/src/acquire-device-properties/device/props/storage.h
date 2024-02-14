@@ -184,9 +184,6 @@ extern "C"
     /// @returns 1 on success, otherwise 0
     int storage_properties_dimensions_destroy(struct StorageProperties* self);
 
-    /// @brief Convert a DimensionType to a string.
-    const char* dimension_type_as_string(enum DimensionType type);
-
 #ifdef __cplusplus
 }
 #endif
