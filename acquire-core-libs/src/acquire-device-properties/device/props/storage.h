@@ -116,13 +116,16 @@ extern "C"
     /// @param[in] bytes_of_metadata Number of bytes in the `metadata` buffer
     ///                              including the terminating null.
     /// @param[in] pixel_scale_um The pixel scale or size in microns.
+    /// @param[in] dimension_count The number of dimensions in the storage
+    /// array.
     int storage_properties_init(struct StorageProperties* out,
                                 uint32_t first_frame_id,
                                 const char* filename,
                                 size_t bytes_of_filename,
                                 const char* metadata,
                                 size_t bytes_of_metadata,
-                                struct PixelScale pixel_scale_um);
+                                struct PixelScale pixel_scale_um,
+                                int dimension_count);
 
     /// Copies contents, reallocating string storage if necessary.
     /// @returns 1 on success, otherwise 0

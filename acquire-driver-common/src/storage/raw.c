@@ -132,7 +132,8 @@ raw_init()
                                   sizeof("out.raw"),
                                   0,
                                   0,
-                                  pixel_scale_um));
+                                  pixel_scale_um,
+                                  0));
     self->writer =
       (struct Storage){ .state = DeviceState_AwaitingConfiguration,
                         .set = raw_set,

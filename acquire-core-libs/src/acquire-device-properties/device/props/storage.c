@@ -228,7 +228,8 @@ storage_properties_dimensions_destroy(struct StorageProperties* self)
     // destroy the array
     (self->acquisition_dimensions.destroy)(self->acquisition_dimensions.data);
 
-    memset(self, 0, sizeof(*self));
+    memset(
+      &self->acquisition_dimensions, 0, sizeof(self->acquisition_dimensions));
 Error:;
 }
 
@@ -250,15 +251,29 @@ storage_properties_init(struct StorageProperties* out,
                         size_t bytes_of_filename,
                         const char* metadata,
                         size_t bytes_of_metadata,
-                        struct PixelScale pixel_scale_um)
+                        struct PixelScale pixel_scale_um,
+                        int dimension_count)
 {
     // Allocate and copy filename
     memset(out, 0, sizeof(*out)); // NOLINT
     CHECK(storage_properties_set_filename(out, filename, bytes_of_filename));
+
+    // Set external metadata
     CHECK(storage_properties_set_external_metadata(
       out, metadata, bytes_of_metadata));
+
     out->first_frame_id = first_frame_id;
     out->pixel_scale_um = pixel_scale_um;
+
+    // Initialize the dimensions array
+    if (dimension_count > 0) {
+        out->acquisition_dimensions.init =
+          storage_properties_dimensions__init_array;
+        out->acquisition_dimensions.destroy =
+          storage_properties_dimensions__destroy_array;
+
+        CHECK(storage_properties_dimensions_init(out, dimension_count));
+    }
 
     return 1;
 Error:
@@ -290,11 +305,12 @@ storage_properties_copy(struct StorageProperties* dst,
 
     // 3. Copy the dimensions
     if (src->acquisition_dimensions.data) {
+        storage_properties_dimensions_destroy(dst);
+
         dst->acquisition_dimensions.init = src->acquisition_dimensions.init;
         dst->acquisition_dimensions.destroy =
           src->acquisition_dimensions.destroy;
 
-        storage_properties_dimensions_destroy(dst);
         CHECK(storage_properties_dimensions_init(
           dst, src->acquisition_dimensions.size));
         for (size_t i = 0; i < src->acquisition_dimensions.size; ++i) {
@@ -348,7 +364,8 @@ unit_test__storage__storage_property_string_check()
                                       sizeof(filename),
                                       metadata,
                                       sizeof(metadata),
-                                      pixel_scale_um));
+                                      pixel_scale_um,
+                                      0));
         CHECK(props.filename.str[props.filename.nbytes - 1] == '\0');
         ASSERT_EQ(int, "%d", props.filename.nbytes, sizeof(filename));
         ASSERT_EQ(int, "%d", props.filename.is_ref, 0);
@@ -374,7 +391,8 @@ unit_test__storage__storage_property_string_check()
                                   sizeof(filename),
                                   metadata,
                                   sizeof(metadata),
-                                  pixel_scale_um));
+                                  pixel_scale_um,
+                                  0));
         CHECK(src.filename.str[src.filename.nbytes - 1] == '\0');
         CHECK(src.filename.nbytes == sizeof(filename));
         CHECK(src.filename.is_ref == 0);
