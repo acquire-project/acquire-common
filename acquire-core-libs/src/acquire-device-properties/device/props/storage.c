@@ -275,6 +275,21 @@ storage_properties_copy(struct StorageProperties* dst,
     CHECK(
       copy_string(&dst->external_metadata_json, &src->external_metadata_json));
 
+    // 3. Copy the dimensions
+    if (src->acquisition_dimensions.data) {
+        dst->acquisition_dimensions.init = src->acquisition_dimensions.init;
+        dst->acquisition_dimensions.destroy =
+          src->acquisition_dimensions.destroy;
+
+        storage_properties_dimensions_destroy(dst);
+        CHECK(storage_properties_dimensions_init(
+          dst, src->acquisition_dimensions.size));
+        for (size_t i = 0; i < src->acquisition_dimensions.size; ++i) {
+            CHECK(storage_dimension_copy(&dst->acquisition_dimensions.data[i],
+                                         &src->acquisition_dimensions.data[i]));
+        }
+    }
+
     return 1;
 Error:
     return 0;
