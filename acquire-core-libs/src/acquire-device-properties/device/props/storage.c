@@ -76,13 +76,26 @@ dimension_type_as_string(enum DimensionType type)
     }
 }
 
-static void
+static int
 storage_properties_dimensions__init_array(struct StorageDimension** data,
                                           size_t size)
 {
-    if (!*data) {
-        *data = malloc(size * sizeof(struct StorageDimension));
+    if (size == 0) {
+        *data = NULL;
+        return 1;
     }
+
+    struct StorageDimension* tmp =
+      *data ? realloc(*data, size * sizeof(*tmp)) : malloc(size * sizeof(*tmp));
+
+    EXPECT(tmp,
+           "Failed to allocate %llu bytes for dimensions array.",
+           (unsigned long long)(size * sizeof(struct StorageDimension)));
+
+    *data = tmp;
+    return 1;
+Error:
+    return 0;
 }
 
 static void
@@ -189,8 +202,8 @@ storage_properties_dimensions_init(struct StorageProperties* self, size_t size)
     CHECK(self->acquisition_dimensions.init);
     CHECK(self->acquisition_dimensions.data == NULL);
 
-    (self->acquisition_dimensions.init)(&self->acquisition_dimensions.data,
-                                        size);
+    CHECK((self->acquisition_dimensions.init)(
+      &self->acquisition_dimensions.data, size));
     CHECK(self->acquisition_dimensions.data);
 
     self->acquisition_dimensions.size = size;

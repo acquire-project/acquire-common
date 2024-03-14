@@ -58,8 +58,33 @@ extern "C"
             // The number of dimensions in the output array.
             size_t size;
 
-            // Allocate storage for the dimensions.
-            void (*init)(struct StorageDimension**, size_t);
+            // Allocate storage for the dimensions. Implementations should
+            // initialize the `data` field to an array of `size` elements. The
+            // caller is responsible for freeing the storage when finished using
+            // the `destroy` function.
+            //
+            // If `size` is 0, the function should return 1 and set the `data`
+            // field to NULL. The caller is responsible for ensuring that this
+            // action does not leak memory.
+            //
+            // If `size` is non-zero and the `data` field is not NULL, the
+            // function will attempt to reallocate the `data` field to the new
+            // size. This may shrink the array if `size` is smaller than the
+            // current size, which may result in a memory leak, so the caller
+            // should ensure that those StorageDimension structs have been
+            // properly destroyed. If `data` is non-null but points to a block
+            // of memory that has been deallocated, the behavior is undefined,
+            // so the caller should ensure that the `data` field is NULL or has
+            // been properly initialized in advance.
+            //
+            // If allocation fails for any reason, the function should return 0
+            // and leave the `data` field unchanged. Otherwise, the function
+            // should return 1.
+            //
+            // @param[out] out The array of dimensions to initialize.
+            // @param[in] size The number of dimensions to allocate.
+            // @return 1 on success, otherwise 0.
+            int (*init)(struct StorageDimension**, size_t);
 
             // Free storage for the dimensions.
             void (*destroy)(struct StorageDimension*);
