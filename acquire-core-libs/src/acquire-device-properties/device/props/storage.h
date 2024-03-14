@@ -181,8 +181,7 @@ extern "C"
     /// @brief Free the acquisition_dimensions array in `self`.
     /// @param[out] self The StorageProperties struct containing the array to
     ///                  destroy.
-    /// @returns 1 on success, otherwise 0
-    int storage_properties_dimensions_destroy(struct StorageProperties* self);
+    void storage_properties_dimensions_destroy(struct StorageProperties* self);
 
 #ifdef __cplusplus
 }

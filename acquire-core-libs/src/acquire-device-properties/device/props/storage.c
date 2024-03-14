@@ -200,20 +200,23 @@ Error:
     return 0;
 }
 
-int
+void
 storage_properties_dimensions_destroy(struct StorageProperties* self)
 {
     CHECK(self);
-    CHECK(self->acquisition_dimensions.destroy);
     CHECK(self->acquisition_dimensions.data);
+    CHECK(self->acquisition_dimensions.destroy);
 
+    // destroy each dimension
+    for (int i = 0; i < self->acquisition_dimensions.size; ++i) {
+        storage_dimension_destroy(&self->acquisition_dimensions.data[i]);
+    }
+
+    // destroy the array
     (self->acquisition_dimensions.destroy)(self->acquisition_dimensions.data);
-    self->acquisition_dimensions.data = NULL;
-    self->acquisition_dimensions.size = 0;
 
-    return 1;
-Error:
-    return 0;
+    memset(self, 0, sizeof(*self));
+Error:;
 }
 
 int
@@ -553,7 +556,7 @@ unit_test__storage_properties_dimensions_destroy()
       malloc(5 * sizeof(struct StorageDimension));
     props.acquisition_dimensions.size = 5;
 
-    CHECK(storage_properties_dimensions_destroy(&props));
+    storage_properties_dimensions_destroy(&props);
     CHECK(props.acquisition_dimensions.size == 0);
     CHECK(props.acquisition_dimensions.data == NULL);
 
