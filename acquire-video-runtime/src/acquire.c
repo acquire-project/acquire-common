@@ -12,9 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef max
+#undef max
 #define max(a, b) ((a) < (b) ? (b) : (a))
-#endif
 
 #define containerof(ptr, T, V) ((T*)(((char*)(ptr)) - offsetof(T, V)))
 #define countof(e) (sizeof(e) / sizeof(*(e)))
