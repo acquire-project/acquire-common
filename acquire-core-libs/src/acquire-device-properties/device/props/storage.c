@@ -76,21 +76,87 @@ dimension_type_as_string(enum DimensionType type)
     }
 }
 
-static void
-storage_properties_dimensions__init_array(struct StorageDimension** data,
-                                          size_t size)
+static int
+storage_dimension_array_init(struct StorageDimension** data, size_t size)
 {
-    if (!*data) {
-        *data = malloc(size * sizeof(struct StorageDimension));
+    if (size == 0) {
+        *data = 0;
+        return 1;
     }
+
+    CHECK(*data = malloc(size * sizeof(struct StorageDimension)));
+    memset(*data, 0, size * sizeof(struct StorageDimension)); // NOLINT
+    return 1;
+Error:
+    return 0;
+}
+
+static int
+storage_properties_dimensions_init(struct StorageProperties* self, size_t size)
+{
+    CHECK(self);
+    CHECK(size > 0);
+    CHECK(self->acquisition_dimensions.data == 0);
+
+    CHECK(
+      storage_dimension_array_init(&self->acquisition_dimensions.data, size));
+    CHECK(self->acquisition_dimensions.data);
+
+    self->acquisition_dimensions.size = size;
+
+    return 1;
+Error:
+    return 0;
+}
+
+static int
+storage_dimension_copy(struct StorageDimension* dst,
+                       const struct StorageDimension* src)
+{
+    CHECK(dst);
+    CHECK(src);
+
+    CHECK(copy_string(&dst->name, &src->name));
+    dst->kind = src->kind;
+    dst->array_size_px = src->array_size_px;
+    dst->chunk_size_px = src->chunk_size_px;
+    dst->shard_size_chunks = src->shard_size_chunks;
+
+    return 1;
+Error:
+    return 0;
 }
 
 static void
-storage_properties_dimensions__destroy_array(struct StorageDimension* data)
+storage_dimension_destroy(struct StorageDimension* self)
 {
-    if (data) {
-        free(data);
+    CHECK(self);
+
+    if (self->name.is_ref == 0 && self->name.str) {
+        free(self->name.str);
     }
+
+    memset(self, 0, sizeof(*self)); // NOLINT
+Error:;
+}
+
+static void
+storage_properties_dimensions_destroy(struct StorageProperties* self)
+{
+    CHECK(self);
+    CHECK(self->acquisition_dimensions.data);
+
+    // destroy each dimension
+    for (int i = 0; i < self->acquisition_dimensions.size; ++i) {
+        storage_dimension_destroy(&self->acquisition_dimensions.data[i]);
+    }
+
+    // destroy the array
+    free(self->acquisition_dimensions.data);
+
+    memset(
+      &self->acquisition_dimensions, 0, sizeof(self->acquisition_dimensions));
+Error:;
 }
 
 int
@@ -116,15 +182,21 @@ storage_properties_set_external_metadata(struct StorageProperties* out,
 }
 
 int
-storage_dimension_init(struct StorageDimension* out,
-                       const char* name,
-                       size_t bytes_of_name,
-                       enum DimensionType kind,
-                       uint32_t array_size_px,
-                       uint32_t chunk_size_px,
-                       uint32_t shard_size_chunks)
+storage_properties_set_dimension(struct StorageProperties* out,
+                                 int index,
+                                 const char* name,
+                                 size_t bytes_of_name,
+                                 enum DimensionType kind,
+                                 uint32_t array_size_px,
+                                 uint32_t chunk_size_px,
+                                 uint32_t shard_size_chunks)
 {
     CHECK(out);
+
+    EXPECT(index < out->acquisition_dimensions.size,
+           "Index %d out of range [0,%d).",
+           index,
+           out->acquisition_dimensions.size);
 
     EXPECT(name, "Dimension name cannot be null.");
     EXPECT(bytes_of_name > 0, "Bytes of name must be positive.");
@@ -133,83 +205,19 @@ storage_dimension_init(struct StorageDimension* out,
            "Invalid dimension type: %s.",
            dimension_type_as_string(kind));
 
-    memset(out, 0, sizeof(*out)); // NOLINT
+    struct StorageDimension* dim = &out->acquisition_dimensions.data[index];
+
+    memset(dim, 0, sizeof(*dim)); // NOLINT
 
     struct String s = { .is_ref = 1,
                         .nbytes = bytes_of_name,
                         .str = (char*)name };
-    CHECK(copy_string(&out->name, &s));
+    CHECK(copy_string(&dim->name, &s));
 
-    out->kind = kind;
-    out->array_size_px = array_size_px;
-    out->chunk_size_px = chunk_size_px;
-    out->shard_size_chunks = shard_size_chunks;
-
-    return 1;
-Error:
-    return 0;
-}
-
-int
-storage_dimension_copy(struct StorageDimension* dst,
-                       const struct StorageDimension* src)
-{
-    CHECK(dst);
-    CHECK(src);
-
-    CHECK(copy_string(&dst->name, &src->name));
-    dst->kind = src->kind;
-    dst->array_size_px = src->array_size_px;
-    dst->chunk_size_px = src->chunk_size_px;
-    dst->shard_size_chunks = src->shard_size_chunks;
-
-    return 1;
-Error:
-    return 0;
-}
-
-void
-storage_dimension_destroy(struct StorageDimension* self)
-{
-    CHECK(self);
-
-    if (self->name.is_ref == 0 && self->name.str) {
-        free(self->name.str);
-    }
-
-    memset(self, 0, sizeof(*self)); // NOLINT
-Error:;
-}
-
-int
-storage_properties_dimensions_init(struct StorageProperties* self, size_t size)
-{
-    CHECK(self);
-    CHECK(size > 0);
-    CHECK(self->acquisition_dimensions.init);
-    CHECK(self->acquisition_dimensions.data == NULL);
-
-    (self->acquisition_dimensions.init)(&self->acquisition_dimensions.data,
-                                        size);
-    CHECK(self->acquisition_dimensions.data);
-
-    self->acquisition_dimensions.size = size;
-
-    return 1;
-Error:
-    return 0;
-}
-
-int
-storage_properties_dimensions_destroy(struct StorageProperties* self)
-{
-    CHECK(self);
-    CHECK(self->acquisition_dimensions.destroy);
-    CHECK(self->acquisition_dimensions.data);
-
-    (self->acquisition_dimensions.destroy)(self->acquisition_dimensions.data);
-    self->acquisition_dimensions.data = NULL;
-    self->acquisition_dimensions.size = 0;
+    dim->kind = kind;
+    dim->array_size_px = array_size_px;
+    dim->chunk_size_px = chunk_size_px;
+    dim->shard_size_chunks = shard_size_chunks;
 
     return 1;
 Error:
@@ -234,15 +242,24 @@ storage_properties_init(struct StorageProperties* out,
                         size_t bytes_of_filename,
                         const char* metadata,
                         size_t bytes_of_metadata,
-                        struct PixelScale pixel_scale_um)
+                        struct PixelScale pixel_scale_um,
+                        int dimension_count)
 {
     // Allocate and copy filename
     memset(out, 0, sizeof(*out)); // NOLINT
     CHECK(storage_properties_set_filename(out, filename, bytes_of_filename));
+
+    // Set external metadata
     CHECK(storage_properties_set_external_metadata(
       out, metadata, bytes_of_metadata));
+
     out->first_frame_id = first_frame_id;
     out->pixel_scale_um = pixel_scale_um;
+
+    // Initialize the dimensions array
+    if (dimension_count > 0) {
+        CHECK(storage_properties_dimensions_init(out, dimension_count));
+    }
 
     return 1;
 Error:
@@ -271,6 +288,18 @@ storage_properties_copy(struct StorageProperties* dst,
     CHECK(copy_string(&dst->filename, &src->filename));
     CHECK(
       copy_string(&dst->external_metadata_json, &src->external_metadata_json));
+
+    // 3. Copy the dimensions
+    if (src->acquisition_dimensions.data) {
+        storage_properties_dimensions_destroy(dst);
+
+        CHECK(storage_properties_dimensions_init(
+          dst, src->acquisition_dimensions.size));
+        for (size_t i = 0; i < src->acquisition_dimensions.size; ++i) {
+            CHECK(storage_dimension_copy(&dst->acquisition_dimensions.data[i],
+                                         &src->acquisition_dimensions.data[i]));
+        }
+    }
 
     return 1;
 Error:
@@ -317,7 +346,8 @@ unit_test__storage__storage_property_string_check()
                                       sizeof(filename),
                                       metadata,
                                       sizeof(metadata),
-                                      pixel_scale_um));
+                                      pixel_scale_um,
+                                      0));
         CHECK(props.filename.str[props.filename.nbytes - 1] == '\0');
         ASSERT_EQ(int, "%d", props.filename.nbytes, sizeof(filename));
         ASSERT_EQ(int, "%d", props.filename.is_ref, 0);
@@ -343,7 +373,8 @@ unit_test__storage__storage_property_string_check()
                                   sizeof(filename),
                                   metadata,
                                   sizeof(metadata),
-                                  pixel_scale_um));
+                                  pixel_scale_um,
+                                  0));
         CHECK(src.filename.str[src.filename.nbytes - 1] == '\0');
         CHECK(src.filename.nbytes == sizeof(filename));
         CHECK(src.filename.is_ref == 0);
@@ -477,47 +508,64 @@ Error:
 int
 unit_test__dimension_init()
 {
-    struct StorageDimension dim = { 0 };
+    struct StorageProperties props = { 0 };
+    CHECK(storage_properties_dimensions_init(&props, 1));
 
-    // can't init with a null char pointer
-    CHECK(!storage_dimension_init(&dim, NULL, 0, DimensionType_Space, 1, 1, 1));
-    CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_Space);
-    CHECK(dim.array_size_px == 0);
-    CHECK(dim.chunk_size_px == 0);
-    CHECK(dim.shard_size_chunks == 0);
+    struct StorageDimension* dim = &props.acquisition_dimensions.data[0];
 
-    // can't init with 0 bytes
-    CHECK(!storage_dimension_init(&dim, "", 0, DimensionType_Space, 1, 1, 1));
-    CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_Space);
-    CHECK(dim.array_size_px == 0);
-    CHECK(dim.chunk_size_px == 0);
-    CHECK(dim.shard_size_chunks == 0);
+    // can't set with a null char pointer
+    CHECK(!storage_properties_set_dimension(
+      &props, 0, NULL, 0, DimensionType_Space, 1, 1, 1));
+    CHECK(dim->name.str == NULL);
+    CHECK(dim->kind == DimensionType_Space);
+    CHECK(dim->array_size_px == 0);
+    CHECK(dim->chunk_size_px == 0);
+    CHECK(dim->shard_size_chunks == 0);
 
-    // can't init with an empty name
-    CHECK(!storage_dimension_init(&dim, "", 1, DimensionType_Space, 1, 1, 1));
-    CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_Space);
-    CHECK(dim.array_size_px == 0);
-    CHECK(dim.chunk_size_px == 0);
-    CHECK(dim.shard_size_chunks == 0);
+    // can't set with 0 bytes
+    CHECK(!storage_properties_set_dimension(
+      &props, 0, "", 0, DimensionType_Space, 1, 1, 1));
+    CHECK(dim->name.str == NULL);
+    CHECK(dim->kind == DimensionType_Space);
+    CHECK(dim->array_size_px == 0);
+    CHECK(dim->chunk_size_px == 0);
+    CHECK(dim->shard_size_chunks == 0);
 
-    // can't init with an invalid dimension type
-    CHECK(!storage_dimension_init(&dim, "x", 2, DimensionTypeCount, 1, 1, 1));
-    CHECK(dim.name.str == NULL);
-    CHECK(dim.kind == DimensionType_Space);
-    CHECK(dim.array_size_px == 0);
-    CHECK(dim.chunk_size_px == 0);
-    CHECK(dim.shard_size_chunks == 0);
+    // can't set with an empty name
+    CHECK(!storage_properties_set_dimension(
+      &props, 0, "", 1, DimensionType_Space, 1, 1, 1));
+    CHECK(dim->name.str == NULL);
+    CHECK(dim->kind == DimensionType_Space);
+    CHECK(dim->array_size_px == 0);
+    CHECK(dim->chunk_size_px == 0);
+    CHECK(dim->shard_size_chunks == 0);
 
-    // init with valid values
-    CHECK(storage_dimension_init(&dim, "x", 2, DimensionType_Space, 1, 1, 1));
-    CHECK(0 == strcmp(dim.name.str, "x"));
-    CHECK(dim.kind == DimensionType_Space);
-    CHECK(dim.array_size_px == 1);
-    CHECK(dim.chunk_size_px == 1);
-    CHECK(dim.shard_size_chunks == 1);
+    // can't set with an invalid dimension type
+    CHECK(!storage_properties_set_dimension(
+      &props, 0, "x", 2, DimensionTypeCount, 1, 1, 1));
+    CHECK(dim->name.str == NULL);
+    CHECK(dim->kind == DimensionType_Space);
+    CHECK(dim->array_size_px == 0);
+    CHECK(dim->chunk_size_px == 0);
+    CHECK(dim->shard_size_chunks == 0);
+
+    // can't set beyond the size of the array
+    CHECK(!storage_properties_set_dimension(
+      &props, 1, "x", 2, DimensionType_Space, 1, 1, 1));
+    CHECK(dim->name.str == NULL);
+    CHECK(dim->kind == DimensionType_Space);
+    CHECK(dim->array_size_px == 0);
+    CHECK(dim->chunk_size_px == 0);
+    CHECK(dim->shard_size_chunks == 0);
+
+    // set with valid values
+    CHECK(storage_properties_set_dimension(
+      &props, 0, "x", 2, DimensionType_Space, 1, 1, 1));
+    CHECK(0 == strcmp(dim->name.str, "x"));
+    CHECK(dim->kind == DimensionType_Space);
+    CHECK(dim->array_size_px == 1);
+    CHECK(dim->chunk_size_px == 1);
+    CHECK(dim->shard_size_chunks == 1);
 
     return 1;
 Error:
@@ -528,8 +576,6 @@ int
 unit_test__storage_properties_dimensions_init()
 {
     struct StorageProperties props = { 0 };
-    props.acquisition_dimensions.init =
-      storage_properties_dimensions__init_array;
     CHECK(storage_properties_dimensions_init(&props, 5));
 
     CHECK(props.acquisition_dimensions.size == 5);
@@ -546,14 +592,15 @@ int
 unit_test__storage_properties_dimensions_destroy()
 {
     struct StorageProperties props = { 0 };
-    props.acquisition_dimensions.destroy =
-      storage_properties_dimensions__destroy_array;
 
     props.acquisition_dimensions.data =
       malloc(5 * sizeof(struct StorageDimension));
     props.acquisition_dimensions.size = 5;
+    memset(props.acquisition_dimensions.data,
+           0,
+           5 * sizeof(struct StorageDimension));
 
-    CHECK(storage_properties_dimensions_destroy(&props));
+    storage_properties_dimensions_destroy(&props);
     CHECK(props.acquisition_dimensions.size == 0);
     CHECK(props.acquisition_dimensions.data == NULL);
 

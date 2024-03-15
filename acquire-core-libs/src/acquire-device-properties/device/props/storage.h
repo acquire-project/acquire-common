@@ -57,12 +57,6 @@ extern "C"
 
             // The number of dimensions in the output array.
             size_t size;
-
-            // Allocate storage for the dimensions.
-            void (*init)(struct StorageDimension**, size_t);
-
-            // Free storage for the dimensions.
-            void (*destroy)(struct StorageDimension*);
         } acquisition_dimensions;
 
         /// Enable multiscale storage if true.
@@ -91,13 +85,16 @@ extern "C"
     /// @param[in] bytes_of_metadata Number of bytes in the `metadata` buffer
     ///                              including the terminating null.
     /// @param[in] pixel_scale_um The pixel scale or size in microns.
+    /// @param[in] dimension_count The number of dimensions in the storage
+    /// array.
     int storage_properties_init(struct StorageProperties* out,
                                 uint32_t first_frame_id,
                                 const char* filename,
                                 size_t bytes_of_filename,
                                 const char* metadata,
                                 size_t bytes_of_metadata,
-                                struct PixelScale pixel_scale_um);
+                                struct PixelScale pixel_scale_um,
+                                int dimension_count);
 
     /// Copies contents, reallocating string storage if necessary.
     /// @returns 1 on success, otherwise 0
@@ -129,19 +126,11 @@ extern "C"
                                                  const char* metadata,
                                                  size_t bytes_of_metadata);
 
-    /// @brief Set multiscale properties for `out`.
-    /// Convenience function to enable multiscale.
-    /// @returns 1 on success, otherwise 0
-    /// @param[in, out] out The storage properties to change.
-    /// @param[in] enable A flag to enable or disable multiscale.
-    int storage_properties_set_enable_multiscale(struct StorageProperties* out,
-                                                 uint8_t enable);
-
-    /// Free's allocated string storage.
-    void storage_properties_destroy(struct StorageProperties* self);
-
-    /// @brief Initialize the Dimension struct in `out`.
-    /// @param[out] out The Dimension struct to initialize.
+    /// @brief Set the value of the StorageDimension struct at index `index` in
+    /// `out`.
+    /// @param[out] out The StorageProperties struct containing the
+    /// StorageDimension array.
+    /// @param[in] index The index of the dimension to set.
     /// @param[in] name The name of the dimension.
     /// @param[in] bytes_of_name The number of bytes in the name buffer.
     ///                          Should include the terminating NULL.
@@ -151,38 +140,25 @@ extern "C"
     /// @param[in] shard_size_chunks The number of chunks in a shard along this
     ///                              dimension.
     /// @returns 1 on success, otherwise 0
-    int storage_dimension_init(struct StorageDimension* out,
-                               const char* name,
-                               size_t bytes_of_name,
-                               enum DimensionType kind,
-                               uint32_t array_size_px,
-                               uint32_t chunk_size_px,
-                               uint32_t shard_size_chunks);
+    int storage_properties_set_dimension(struct StorageProperties* out,
+                                         int index,
+                                         const char* name,
+                                         size_t bytes_of_name,
+                                         enum DimensionType kind,
+                                         uint32_t array_size_px,
+                                         uint32_t chunk_size_px,
+                                         uint32_t shard_size_chunks);
 
-    /// @brief Copy the Dimension struct in `src` to `dst`.
-    /// @param[out] dst The Dimension struct to copy to.
-    /// @param[in] src The Dimension struct to copy from.
+    /// @brief Set multiscale properties for `out`.
+    /// Convenience function to enable multiscale.
     /// @returns 1 on success, otherwise 0
-    int storage_dimension_copy(struct StorageDimension* dst,
-                               const struct StorageDimension* src);
+    /// @param[in, out] out The storage properties to change.
+    /// @param[in] enable A flag to enable or disable multiscale.
+    int storage_properties_set_enable_multiscale(struct StorageProperties* out,
+                                                 uint8_t enable);
 
-    /// @brief Destroy the Dimension struct in `self`.
-    /// @param[out] self The Dimension struct to destroy.
-    void storage_dimension_destroy(struct StorageDimension* self);
-
-    /// @brief Initialize the acquisition_dimensions array in `self`.
-    /// @param[out] self The StorageProperties struct containing the array to
-    ///                  initialize.
-    /// @param[in] size The number of dimensions to allocate.
-    /// @returns 1 on success, otherwise 0
-    int storage_properties_dimensions_init(struct StorageProperties* self,
-                                           size_t size);
-
-    /// @brief Free the acquisition_dimensions array in `self`.
-    /// @param[out] self The StorageProperties struct containing the array to
-    ///                  destroy.
-    /// @returns 1 on success, otherwise 0
-    int storage_properties_dimensions_destroy(struct StorageProperties* self);
+    /// Free allocated string storage.
+    void storage_properties_destroy(struct StorageProperties* self);
 
 #ifdef __cplusplus
 }
