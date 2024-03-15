@@ -601,6 +601,9 @@ unit_test__storage_properties_dimensions_destroy()
     props.acquisition_dimensions.data =
       malloc(5 * sizeof(struct StorageDimension));
     props.acquisition_dimensions.size = 5;
+    memset(props.acquisition_dimensions.data,
+           0,
+           5 * sizeof(struct StorageDimension));
 
     storage_properties_dimensions_destroy(&props);
     CHECK(props.acquisition_dimensions.size == 0);
