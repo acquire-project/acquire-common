@@ -86,7 +86,8 @@ extern "C"
     ///                              including the terminating null.
     /// @param[in] pixel_scale_um The pixel scale or size in microns.
     /// @param[in] dimension_count The number of dimensions in the storage
-    /// array.
+    /// array. Each of the @p dimension_count dimensions will be initialized
+    /// to zero.
     int storage_properties_init(struct StorageProperties* out,
                                 uint32_t first_frame_id,
                                 const char* filename,
@@ -94,7 +95,7 @@ extern "C"
                                 const char* metadata,
                                 size_t bytes_of_metadata,
                                 struct PixelScale pixel_scale_um,
-                                int dimension_count);
+                                uint8_t dimension_count);
 
     /// Copies contents, reallocating string storage if necessary.
     /// @returns 1 on success, otherwise 0

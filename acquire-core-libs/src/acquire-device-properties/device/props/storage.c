@@ -243,7 +243,7 @@ storage_properties_init(struct StorageProperties* out,
                         const char* metadata,
                         size_t bytes_of_metadata,
                         struct PixelScale pixel_scale_um,
-                        int dimension_count)
+                        uint8_t dimension_count)
 {
     // Allocate and copy filename
     memset(out, 0, sizeof(*out)); // NOLINT
