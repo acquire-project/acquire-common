@@ -88,6 +88,9 @@ validate(const struct StorageProperties* props)
                   props->external_metadata_json.nbytes);
 
     {
+        CHECK(props->uri.str);
+        CHECK(props->uri.nbytes);
+
         const size_t offset = strlen(props->uri.str) >= 7 &&
                                   strncmp(props->uri.str, "file://", 7) == 0
                                 ? 7
