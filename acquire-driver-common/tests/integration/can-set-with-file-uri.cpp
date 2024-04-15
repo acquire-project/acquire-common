@@ -6,6 +6,7 @@
 #include "logger.h"
 
 #include <cstdio>
+#include <cstring>
 #include <stdexcept>
 #include <filesystem>
 

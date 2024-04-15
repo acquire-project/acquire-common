@@ -4,6 +4,7 @@
 #include "platform.h"
 
 #include <cstddef>
+#include <cstring>
 #include <exception>
 #include <stdexcept>
 #include <string>
