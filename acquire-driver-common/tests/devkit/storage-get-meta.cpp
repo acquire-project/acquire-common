@@ -75,6 +75,7 @@ main()
                 CHECK(0 == metadata.chunking_is_supported);
                 CHECK(0 == metadata.sharding_is_supported);
                 CHECK(0 == metadata.multiscale_is_supported);
+                CHECK(0 == metadata.s3_is_supported);
 
                 CHECK(Device_Ok == driver_close_device(device));
             }
