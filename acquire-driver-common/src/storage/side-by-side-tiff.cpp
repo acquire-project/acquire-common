@@ -17,6 +17,7 @@
 #include "logger.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <iostream>
 
@@ -51,8 +52,7 @@ struct SideBySideTiff
 fs::path
 as_path(const StorageProperties& props)
 {
-    return { props.uri.str,
-             props.uri.str + props.uri.nbytes - 1 };
+    return { props.uri.str, props.uri.str + props.uri.nbytes - 1 };
 }
 
 void
@@ -115,7 +115,19 @@ side_by_side_tiff_set(struct Storage* self_,
         struct SideBySideTiff* self =
           containerof(self_, struct SideBySideTiff, storage);
         validate(props);
-        self->props = *props;
+        CHECK(storage_properties_copy(&self->props, props));
+
+        const size_t offset = strlen(props->uri.str) >= 7 &&
+                                  strncmp(props->uri.str, "file://", 7) == 0
+                                ? 7
+                                : 0;
+
+        // update the URI if it has a file:// prefix
+        if (offset) {
+            const char* filename = props->uri.str + offset;
+            const size_t nbytes = props->uri.nbytes - offset;
+            CHECK(storage_properties_set_uri(&self->props, filename, nbytes));
+        }
 
     } catch (const std::exception& e) {
         LOGE("Exception: %s\n", e.what());
