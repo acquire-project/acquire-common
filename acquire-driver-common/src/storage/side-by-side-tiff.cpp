@@ -88,8 +88,13 @@ validate(const struct StorageProperties* props)
                   props->external_metadata_json.nbytes);
 
     {
-        fs::path path(props->uri.str,
-                      props->uri.str + props->uri.nbytes);
+        const size_t offset = strlen(props->uri.str) >= 7 &&
+                                  strncmp(props->uri.str, "file://", 7) == 0
+                                ? 7
+                                : 0;
+
+        fs::path path(props->uri.str + offset,
+                      (props->uri.str + offset) + (props->uri.nbytes - offset));
         auto parent_path = path.parent_path();
         if (parent_path.empty()) {
             parent_path = fs::path(".");
