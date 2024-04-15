@@ -51,6 +51,11 @@ raw_set(struct Storage* self_, const struct StorageProperties* properties)
     // copy in the properties
     CHECK(storage_properties_copy(&self->properties, properties));
 
+    // update the URI if it has a file:// prefix
+    if (offset) {
+        storage_properties_set_uri(&self->properties, filename, nbytes);
+    }
+
     return DeviceState_Armed;
 Error:
     return DeviceState_AwaitingConfiguration;
