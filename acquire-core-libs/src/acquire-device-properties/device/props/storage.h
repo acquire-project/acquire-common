@@ -42,7 +42,7 @@ extern "C"
     /// Properties for a storage driver.
     struct StorageProperties
     {
-        struct String filename;
+        struct String uri;
         struct String external_metadata_json;
         uint32_t first_frame_id;
         struct PixelScale pixel_scale_um;
@@ -76,10 +76,10 @@ extern "C"
     /// @param[out] out The constructed StorageProperties object.
     /// @param[in] first_frame_id (unused; aiming for future file rollover
     /// support
-    /// @param[in] filename A c-style null-terminated string. The file to create
-    ///                     for streaming.
-    /// @param[in] bytes_of_filename Number of bytes in the `filename` buffer
-    ///                              including the terminating null.
+    /// @param[in] uri A c-style null-terminated string. The file to create
+    ///                for streaming.
+    /// @param[in] bytes_of_uri Number of bytes in the `uri` buffer,
+    ///                         including the terminating null.
     /// @param[in] metadata A c-style null-terminated string. Metadata string
     ///                     to save along side the created file.
     /// @param[in] bytes_of_metadata Number of bytes in the `metadata` buffer
@@ -90,8 +90,8 @@ extern "C"
     /// to zero.
     int storage_properties_init(struct StorageProperties* out,
                                 uint32_t first_frame_id,
-                                const char* filename,
-                                size_t bytes_of_filename,
+                                const char* uri,
+                                size_t bytes_of_uri,
                                 const char* metadata,
                                 size_t bytes_of_metadata,
                                 struct PixelScale pixel_scale_um,
@@ -105,23 +105,23 @@ extern "C"
     int storage_properties_copy(struct StorageProperties* dst,
                                 const struct StorageProperties* src);
 
-    /// @brief Set the filename string in `out`.
+    /// @brief Set the uri string in `out`.
     /// Copies the string into storage owned by the properties struct.
     /// @returns 1 on success, otherwise 0
     /// @param[in,out] out The storage properties to change.
-    /// @param[in] filename pointer to the beginning of the filename buffer.
-    /// @param[in] bytes_of_filename the number of bytes in the filename buffer.
-    ///                              Should include the terminating NULL.
-    int storage_properties_set_filename(struct StorageProperties* out,
-                                        const char* filename,
-                                        size_t bytes_of_filename);
+    /// @param[in] uri Pointer to the beginning of the uri buffer.
+    /// @param[in] bytes_of_uri The number of bytes in the uri buffer.
+    ///                         Should include the terminating NULL.
+    int storage_properties_set_uri(struct StorageProperties* out,
+                                   const char* uri,
+                                   size_t bytes_of_uri);
 
     /// @brief Set the metadata string in `out`.
     /// Copies the string into storage owned by the properties struct.
     /// @returns 1 on success, otherwise 0
     /// @param[in,out] out The storage properties to change.
     /// @param[in] metadata pointer to the beginning of the metadata buffer.
-    /// @param[in] bytes_of_filename the number of bytes in the metadata buffer.
+    /// @param[in] bytes_of_metadata the number of bytes in the metadata buffer.
     ///                              Should include the terminating NULL.
     int storage_properties_set_external_metadata(struct StorageProperties* out,
                                                  const char* metadata,

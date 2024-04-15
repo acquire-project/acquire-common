@@ -112,8 +112,8 @@ configure_storage_tiff(AcquireRuntime* runtime)
                                 SIZED("tiff"),
                                 &props.video[0].storage.identifier));
 
-    storage_properties_set_filename(&props.video[0].storage.settings,
-                                    SIZED(TEST ".tif") + 1);
+    storage_properties_set_uri(&props.video[0].storage.settings,
+                               SIZED(TEST ".tif") + 1);
 
     OK(acquire_configure(runtime, &props));
 }
@@ -150,8 +150,8 @@ configure_storage_raw(AcquireRuntime* runtime)
                                 SIZED("Raw"),
                                 &props.video[0].storage.identifier));
 
-    storage_properties_set_filename(&props.video[0].storage.settings,
-                                    SIZED(TEST ".bin") + 1);
+    storage_properties_set_uri(&props.video[0].storage.settings,
+                               SIZED(TEST ".bin") + 1);
 
     OK(acquire_configure(runtime, &props));
 }

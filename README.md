@@ -83,7 +83,7 @@ This is an Acquire Driver that exposes commonly used devices.
 - **tiff** - Streams to a [bigtiff] file. Metadata is stored in the `ImageDescription` tag for each frame as a `json`
   string.
 - **tiff-json** - Stores the video stream in a *bigtiff* (as above) and stores metadata in a `json` file. Both are
-  located in a folder identified by the `filename` property.
+  located in a folder identified by the `uri` property.
 - **Trash** - Writes nothing. Discards incoming data.
 
 [bigtiff]: http://bigtiff.org/

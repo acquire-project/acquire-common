@@ -53,7 +53,7 @@ acquire(AcquireRuntime* runtime,
         struct AcquireProperties* props,
         const char* filename)
 {
-    storage_properties_set_filename(
+    storage_properties_set_uri(
       &props->video[0].storage.settings, filename, strlen(filename) + 1);
 
     OK(acquire_configure(runtime, props));

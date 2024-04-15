@@ -51,8 +51,8 @@ struct SideBySideTiff
 fs::path
 as_path(const StorageProperties& props)
 {
-    return { props.filename.str,
-             props.filename.str + props.filename.nbytes - 1 };
+    return { props.uri.str,
+             props.uri.str + props.uri.nbytes - 1 };
 }
 
 void
@@ -88,8 +88,8 @@ validate(const struct StorageProperties* props)
                   props->external_metadata_json.nbytes);
 
     {
-        fs::path path(props->filename.str,
-                      props->filename.str + props->filename.nbytes);
+        fs::path path(props->uri.str,
+                      props->uri.str + props->uri.nbytes);
         auto parent_path = path.parent_path();
         if (parent_path.empty()) {
             parent_path = fs::path(".");
@@ -190,7 +190,7 @@ side_by_side_tiff_start(struct Storage* self_) noexcept
             const auto video_path = (path / "data.tif").generic_string();
             StorageProperties props{};
             storage_properties_copy(&props, &self->props);
-            props.filename = {
+            props.uri = {
                 .str = (char*)video_path.c_str(),
                 .nbytes = video_path.length(),
                 .is_ref = 1,

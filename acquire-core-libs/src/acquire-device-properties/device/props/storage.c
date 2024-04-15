@@ -160,14 +160,14 @@ Error:;
 }
 
 int
-storage_properties_set_filename(struct StorageProperties* out,
-                                const char* filename,
-                                size_t bytes_of_filename)
+storage_properties_set_uri(struct StorageProperties* out,
+                           const char* uri,
+                           size_t bytes_of_uri)
 {
     const struct String s = { .is_ref = 1,
-                              .nbytes = bytes_of_filename,
-                              .str = (char*)filename };
-    return copy_string(&out->filename, &s);
+                              .nbytes = bytes_of_uri,
+                              .str = (char*)uri };
+    return copy_string(&out->uri, &s);
 }
 
 int
@@ -238,8 +238,8 @@ Error:
 int
 storage_properties_init(struct StorageProperties* out,
                         uint32_t first_frame_id,
-                        const char* filename,
-                        size_t bytes_of_filename,
+                        const char* uri,
+                        size_t bytes_of_uri,
                         const char* metadata,
                         size_t bytes_of_metadata,
                         struct PixelScale pixel_scale_um,
@@ -247,7 +247,7 @@ storage_properties_init(struct StorageProperties* out,
 {
     // Allocate and copy filename
     memset(out, 0, sizeof(*out)); // NOLINT
-    CHECK(storage_properties_set_filename(out, filename, bytes_of_filename));
+    CHECK(storage_properties_set_uri(out, uri, bytes_of_uri));
 
     // Set external metadata
     CHECK(storage_properties_set_external_metadata(
@@ -273,19 +273,19 @@ storage_properties_copy(struct StorageProperties* dst,
     // 1. Copy everything except the strings
     {
         struct String tmp_fname, tmp_meta;
-        memcpy(&tmp_fname, &dst->filename, sizeof(struct String)); // NOLINT
-        memcpy(&tmp_meta,                                          // NOLINT
+        memcpy(&tmp_fname, &dst->uri, sizeof(struct String)); // NOLINT
+        memcpy(&tmp_meta,                                     // NOLINT
                &dst->external_metadata_json,
                sizeof(struct String));
-        memcpy(dst, src, sizeof(*dst));                            // NOLINT
-        memcpy(&dst->filename, &tmp_fname, sizeof(struct String)); // NOLINT
-        memcpy(&dst->external_metadata_json,                       // NOLINT
+        memcpy(dst, src, sizeof(*dst));                       // NOLINT
+        memcpy(&dst->uri, &tmp_fname, sizeof(struct String)); // NOLINT
+        memcpy(&dst->external_metadata_json,                  // NOLINT
                &tmp_meta,
                sizeof(struct String));
     }
 
     // 2. Reallocate and copy the Strings
-    CHECK(copy_string(&dst->filename, &src->filename));
+    CHECK(copy_string(&dst->uri, &src->uri));
     CHECK(
       copy_string(&dst->external_metadata_json, &src->external_metadata_json));
 
@@ -309,7 +309,7 @@ Error:
 void
 storage_properties_destroy(struct StorageProperties* self)
 {
-    struct String* const strings[] = { &self->filename,
+    struct String* const strings[] = { &self->uri,
                                        &self->external_metadata_json };
     for (int i = 0; i < countof(strings); ++i) {
         if (strings[i]->is_ref == 0 && strings[i]->str) {
@@ -348,9 +348,9 @@ unit_test__storage__storage_property_string_check()
                                       sizeof(metadata),
                                       pixel_scale_um,
                                       0));
-        CHECK(props.filename.str[props.filename.nbytes - 1] == '\0');
-        ASSERT_EQ(int, "%d", props.filename.nbytes, sizeof(filename));
-        ASSERT_EQ(int, "%d", props.filename.is_ref, 0);
+        CHECK(props.uri.str[props.uri.nbytes - 1] == '\0');
+        ASSERT_EQ(int, "%d", props.uri.nbytes, sizeof(filename));
+        ASSERT_EQ(int, "%d", props.uri.is_ref, 0);
 
         CHECK(props.external_metadata_json
                 .str[props.external_metadata_json.nbytes - 1] == '\0');
@@ -375,9 +375,9 @@ unit_test__storage__storage_property_string_check()
                                   sizeof(metadata),
                                   pixel_scale_um,
                                   0));
-        CHECK(src.filename.str[src.filename.nbytes - 1] == '\0');
-        CHECK(src.filename.nbytes == sizeof(filename));
-        CHECK(src.filename.is_ref == 0);
+        CHECK(src.uri.str[src.uri.nbytes - 1] == '\0');
+        CHECK(src.uri.nbytes == sizeof(filename));
+        CHECK(src.uri.is_ref == 0);
         CHECK(src.pixel_scale_um.x == 1);
         CHECK(src.pixel_scale_um.y == 2);
 
@@ -388,9 +388,9 @@ unit_test__storage__storage_property_string_check()
 
         CHECK(storage_properties_copy(&props, &src));
         storage_properties_destroy(&src);
-        CHECK(props.filename.str[props.filename.nbytes - 1] == '\0');
-        CHECK(props.filename.nbytes == sizeof(filename));
-        CHECK(props.filename.is_ref == 0);
+        CHECK(props.uri.str[props.uri.nbytes - 1] == '\0');
+        CHECK(props.uri.nbytes == sizeof(filename));
+        CHECK(props.uri.is_ref == 0);
 
         CHECK(props.external_metadata_json
                 .str[props.external_metadata_json.nbytes - 1] == '\0');

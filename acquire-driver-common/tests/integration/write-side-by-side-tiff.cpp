@@ -1,5 +1,6 @@
 /// @file write-side-by-side-tiff.cpp
-/// Test that the side-by-side tiff/JSON writer writes a TIFF file and a JSON file.
+/// Test that the side-by-side tiff/JSON writer writes a TIFF file and a JSON
+/// file.
 
 #include "acquire.h"
 #include "device/hal/device.manager.h"
@@ -77,7 +78,7 @@ acquire(AcquireRuntime* runtime, const char* filename)
         .is_ref = 1,
     };
 
-    props.video[0].storage.settings.filename = {
+    props.video[0].storage.settings.uri = {
         .str = (char*)filename,
         .nbytes = strlen(filename) + 1,
         .is_ref = 1,
