@@ -427,7 +427,12 @@ Tiff::set(const struct StorageProperties* settings) noexcept
     EXPECT(settings->uri.str, "Filename string is NULL.");
     EXPECT(settings->uri.nbytes, "Filename string is zero size.");
     {
-        string filename(settings->uri.str);
+        const size_t offset = strlen(settings->uri.str) >= 7 &&
+                                  strncmp(settings->uri.str, "file://", 7) == 0
+                                ? 7
+                                : 0;
+        string filename(settings->uri.str + offset,
+                        settings->uri.nbytes - offset);
 
         // Validate and copy the filename
         CHECK(file_is_writable(filename.c_str(), filename.length()));

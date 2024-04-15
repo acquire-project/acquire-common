@@ -35,8 +35,15 @@ static enum DeviceState
 raw_set(struct Storage* self_, const struct StorageProperties* properties)
 {
     struct Raw* self = containerof(self_, struct Raw, writer);
-    const char* filename = properties->uri.str;
-    const size_t nbytes = properties->uri.nbytes;
+    CHECK(properties->uri.str);
+    CHECK(properties->uri.nbytes);
+
+    const size_t offset = strlen(properties->uri.str) >= 7 &&
+                              strncmp(properties->uri.str, "file://", 7) == 0
+                            ? 7
+                            : 0;
+    const char* filename = properties->uri.str + offset;
+    const size_t nbytes = properties->uri.nbytes - offset;
 
     // Validate
     CHECK(file_is_writable(filename, nbytes));
@@ -69,9 +76,8 @@ static enum DeviceState
 raw_start(struct Storage* self_)
 {
     struct Raw* self = containerof(self_, struct Raw, writer);
-    CHECK(file_create(&self->file,
-                      self->properties.uri.str,
-                      self->properties.uri.nbytes));
+    CHECK(file_create(
+      &self->file, self->properties.uri.str, self->properties.uri.nbytes));
     LOG("RAW: Frame header size %d bytes", (int)sizeof(struct VideoFrame));
     return DeviceState_Running;
 Error:

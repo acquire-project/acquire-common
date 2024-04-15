@@ -11,6 +11,7 @@ else ()
     #
     set(tests
             abort-while-waiting-for-trigger
+            can-set-with-file-uri
             configure-triggering
             list-digital-lines
             software-trigger-acquires-single-frames
