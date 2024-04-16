@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Users can specify access key ID and secret access key for S3 storage in `StorageProperties`.
+
 ### Fixed
 
 - A bug where changing device identifiers for the storage device was not being handled correctly.
@@ -16,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `reserve_image_shape` is now called in `acquire_configure` rather than `acquire_start`.
 - Users can now specify the names, ordering, and number of acquisition dimensions.
+- The `StorageProperties::filename` field is now `StorageProperties::uri`.
+- Files can be specified by URI with an optional `file://` prefix.
 
 ## 0.2.0 - 2024-01-05
 
