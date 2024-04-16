@@ -182,6 +182,19 @@ storage_properties_set_external_metadata(struct StorageProperties* out,
 }
 
 int
+storage_properties_set_access_key_and_secret(struct StorageProperties* out,
+                                             const char* access_key_id,
+                                             size_t bytes_of_access_key_id,
+                                             const char* secret_access_key,
+                                             size_t bytes_of_secret_access_key)
+{
+    const struct String s = { .is_ref = 1,
+                              .nbytes = bytes_of_access_key_id,
+                              .str = (char*)access_key_id };
+    return copy_string(&out->access_key_id, &s);
+}
+
+int
 storage_properties_set_dimension(struct StorageProperties* out,
                                  int index,
                                  const char* name,
@@ -272,22 +285,37 @@ storage_properties_copy(struct StorageProperties* dst,
 {
     // 1. Copy everything except the strings
     {
-        struct String tmp_fname, tmp_meta;
-        memcpy(&tmp_fname, &dst->uri, sizeof(struct String)); // NOLINT
-        memcpy(&tmp_meta,                                     // NOLINT
+        struct String tmp_uri, tmp_meta, tmp_access_key, tmp_secret_key;
+        memcpy(&tmp_uri, &dst->uri, sizeof(struct String)); // NOLINT
+        memcpy(&tmp_meta,                                   // NOLINT
                &dst->external_metadata_json,
                sizeof(struct String));
-        memcpy(dst, src, sizeof(*dst));                       // NOLINT
-        memcpy(&dst->uri, &tmp_fname, sizeof(struct String)); // NOLINT
-        memcpy(&dst->external_metadata_json,                  // NOLINT
+        memcpy(&tmp_access_key,
+               &dst->access_key_id,
+               sizeof(struct String)); // NOLINT
+        memcpy(&tmp_secret_key,
+               &dst->secret_access_key,
+               sizeof(struct String)); // NOLINT
+
+        memcpy(dst, src, sizeof(*dst));                     // NOLINT
+        memcpy(&dst->uri, &tmp_uri, sizeof(struct String)); // NOLINT
+        memcpy(&dst->external_metadata_json,                // NOLINT
                &tmp_meta,
                sizeof(struct String));
+        memcpy(&dst->access_key_id,
+               &tmp_access_key,
+               sizeof(struct String)); // NOLINT
+        memcpy(&dst->secret_access_key,
+               &tmp_secret_key,
+               sizeof(struct String)); // NOLINT
     }
 
     // 2. Reallocate and copy the Strings
     CHECK(copy_string(&dst->uri, &src->uri));
     CHECK(
       copy_string(&dst->external_metadata_json, &src->external_metadata_json));
+    CHECK(copy_string(&dst->access_key_id, &src->access_key_id));
+    CHECK(copy_string(&dst->secret_access_key, &src->secret_access_key));
 
     // 3. Copy the dimensions
     if (src->acquisition_dimensions.data) {
@@ -310,7 +338,9 @@ void
 storage_properties_destroy(struct StorageProperties* self)
 {
     struct String* const strings[] = { &self->uri,
-                                       &self->external_metadata_json };
+                                       &self->external_metadata_json,
+                                       &self->access_key_id,
+                                       &self->secret_access_key };
     for (int i = 0; i < countof(strings); ++i) {
         if (strings[i]->is_ref == 0 && strings[i]->str) {
             free(strings[i]->str);
@@ -500,6 +530,33 @@ unit_test__storage__copy_string()
     free(src.str);
     free(dst.str);
 
+    return 1;
+Error:
+    return 0;
+}
+
+int
+unit_test__storage_properties_set_access_key_and_secret()
+{
+    struct StorageProperties props = { 0 };
+    const char access_key_id[] = "access_key_id";
+    const char secret_access_key[] = "secret_access_key";
+
+    CHECK(
+      storage_properties_set_access_key_and_secret(&props,
+                                                   access_key_id,
+                                                   sizeof(access_key_id),
+                                                   secret_access_key,
+                                                   sizeof(secret_access_key)));
+
+    CHECK(0 == strcmp(props.access_key_id.str, access_key_id));
+    CHECK(props.access_key_id.nbytes == sizeof(access_key_id));
+    CHECK(0 == props.access_key_id.is_ref);
+    
+    CHECK(0 == strcmp(props.secret_access_key.str, secret_access_key));
+    CHECK(props.secret_access_key.nbytes == sizeof(secret_access_key));
+    CHECK(0 == props.secret_access_key.is_ref);
+        
     return 1;
 Error:
     return 0;

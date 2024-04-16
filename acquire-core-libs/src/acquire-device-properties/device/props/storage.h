@@ -44,6 +44,9 @@ extern "C"
     {
         struct String uri;
         struct String external_metadata_json;
+        struct String access_key_id;
+        struct String secret_access_key;
+
         uint32_t first_frame_id;
         struct PixelScale pixel_scale_um;
 
@@ -127,6 +130,25 @@ extern "C"
     int storage_properties_set_external_metadata(struct StorageProperties* out,
                                                  const char* metadata,
                                                  size_t bytes_of_metadata);
+
+    /// @brief Set the access key id string in `out`.
+    /// Copies the string into storage owned by the properties struct.
+    /// @returns 1 on success, otherwise 0
+    /// @param[in,out] out The storage properties to change.
+    /// @param[in] access_key_id Pointer to the beginning of the access key id
+    ///                          buffer.
+    /// @param[in] bytes_of_access_key_id The number of bytes in the access key
+    ///                                   id.
+    /// @param[in] secret_access_key Pointer to the beginning of the secret
+    ///                              access key buffer.
+    /// @param[in] bytes_of_secret_access_key The number of bytes in the secret
+    ///                                       access key.
+    int storage_properties_set_access_key_and_secret(
+      struct StorageProperties* out,
+      const char* access_key_id,
+      size_t bytes_of_access_key_id,
+      const char* secret_access_key,
+      size_t bytes_of_secret_access_key);
 
     /// @brief Set the value of the StorageDimension struct at index `index` in
     /// `out`.

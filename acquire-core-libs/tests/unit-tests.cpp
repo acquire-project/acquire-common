@@ -70,6 +70,7 @@ extern "C"
     // device-properties
     int unit_test__storage__storage_property_string_check();
     int unit_test__storage__copy_string();
+    int unit_test__storage_properties_set_access_key_and_secret();
     int unit_test__dimension_init();
     int unit_test__storage_properties_dimensions_init();
     int unit_test__storage_properties_dimensions_destroy();
