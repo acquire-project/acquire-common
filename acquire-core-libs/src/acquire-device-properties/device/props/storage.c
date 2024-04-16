@@ -191,7 +191,14 @@ storage_properties_set_access_key_and_secret(struct StorageProperties* out,
     const struct String s = { .is_ref = 1,
                               .nbytes = bytes_of_access_key_id,
                               .str = (char*)access_key_id };
-    return copy_string(&out->access_key_id, &s);
+    CHECK(copy_string(&out->access_key_id, &s));
+
+    const struct String t = { .is_ref = 1,
+                              .nbytes = bytes_of_secret_access_key,
+                              .str = (char*)secret_access_key };
+    return copy_string(&out->secret_access_key, &t);
+Error:
+    return 0;
 }
 
 int
@@ -552,11 +559,11 @@ unit_test__storage_properties_set_access_key_and_secret()
     CHECK(0 == strcmp(props.access_key_id.str, access_key_id));
     CHECK(props.access_key_id.nbytes == sizeof(access_key_id));
     CHECK(0 == props.access_key_id.is_ref);
-    
+
     CHECK(0 == strcmp(props.secret_access_key.str, secret_access_key));
     CHECK(props.secret_access_key.nbytes == sizeof(secret_access_key));
     CHECK(0 == props.secret_access_key.is_ref);
-        
+
     return 1;
 Error:
     return 0;
