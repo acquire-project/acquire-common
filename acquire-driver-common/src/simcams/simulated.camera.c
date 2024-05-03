@@ -86,12 +86,6 @@ struct SimulatedCamera
 };
 
 static size_t
-bytes_of_image(const struct ImageShape* const shape)
-{
-    return shape->strides.planes * bytes_of_type(shape->type);
-}
-
-static size_t
 aligned_bytes_of_image(const struct ImageShape* const shape)
 {
     const size_t n = bytes_of_image(shape);

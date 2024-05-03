@@ -24,12 +24,6 @@
     } while (0)
 #define CHECK(e) EXPECT(e, "Expression evaluated as false:\n\t%s", #e)
 
-static size_t
-bytes_of_image(const struct ImageShape* const shape)
-{
-    return shape->strides.planes * bytes_of_type(shape->type);
-}
-
 static int
 check_frame_id(uint8_t stream_id,
                uint64_t iframe,

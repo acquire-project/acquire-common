@@ -31,12 +31,6 @@ slice_size_bytes(const struct slice* slice)
     return (uint8_t*)slice->end - (uint8_t*)slice->beg;
 }
 
-static size_t
-bytes_of_image(const struct ImageShape* const shape)
-{
-    return shape->strides.planes * bytes_of_type(shape->type);
-}
-
 static int
 assert_consistent_shape(const struct VideoFrame* acc,
                         const struct VideoFrame* in)
