@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <mach/mach_time.h>
 
+#define ACQUIRE_ALIGN(n) __attribute__((aligned(n)))
+
 #ifdef __cplusplus
 extern "C"
 {

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "platform.h"
 
 #ifdef __cplusplus
 
@@ -117,7 +118,7 @@ extern "C"
         uint64_t hardware_frame_id;
     };
 
-    struct VideoFrame
+    struct ACQUIRE_ALIGN(64) VideoFrame
     {
         /// The total number of bytes for this struct plus the
         /// size of the attached data buffer.

@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#define ACQUIRE_ALIGN(n) __declspec(align(n))
+
 #ifdef __cplusplus
 extern "C"
 {
