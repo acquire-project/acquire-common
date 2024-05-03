@@ -3,6 +3,7 @@
 
 #include "acquire.h"
 #include "device/hal/device.manager.h"
+#include "device/props/components.h"
 #include "platform.h"
 #include "logger.h"
 
@@ -23,6 +24,12 @@ reporter(int is_error,
             line,
             function,
             msg);
+}
+
+static size_t
+bytes_of_frame(const VideoFrame* frame)
+{
+    return sizeof(*frame) + bytes_of_image(&frame->shape);
 }
 
 /// Helper for passing size static strings as function args.
@@ -46,13 +53,12 @@ reporter(int is_error,
 #define DEVOK(e) CHECK(Device_Ok == (e))
 #define OK(e) CHECK(AcquireStatus_Ok == (e))
 
-int
-main()
+void
+configure(AcquireRuntime* runtime)
 {
-
-    auto runtime = acquire_init(reporter);
-    auto dm = acquire_device_manager(runtime);
     CHECK(runtime);
+
+    const DeviceManager* dm = acquire_device_manager(runtime);
     CHECK(dm);
 
     AcquireProperties props = {};
@@ -84,9 +90,19 @@ main()
     props.video[0].max_frame_count = 10;
 
     OK(acquire_configure(runtime, &props));
+    storage_properties_destroy(&props.video[0].storage.settings);
+}
+
+void
+acquire(AcquireRuntime* runtime)
+{
+    CHECK(runtime);
+
+    AcquireProperties props = {};
+    OK(acquire_get_configuration(runtime, &props));
 
     const auto next = [](VideoFrame* cur) -> VideoFrame* {
-        return (VideoFrame*)(((uint8_t*)cur) + cur->bytes_of_frame);
+        return (VideoFrame*)(((uint8_t*)cur) + bytes_of_frame(cur));
     };
 
     const auto consumed_bytes = [](const VideoFrame* const cur,
@@ -94,8 +110,7 @@ main()
         return (uint8_t*)end - (uint8_t*)cur;
     };
 
-    struct clock clock
-    {};
+    struct clock clock = {};
     // expected time to acquire frames + 100%
     static double time_limit_ms =
       (props.video[0].max_frame_count / 6.0) * 1000.0 * 2.0;
@@ -137,9 +152,26 @@ main()
 
         CHECK(nframes == props.video[0].max_frame_count);
     }
-    storage_properties_destroy(&props.video[0].storage.settings);
 
     OK(acquire_stop(runtime));
-    OK(acquire_shutdown(runtime));
-    return 0;
+}
+
+int
+main()
+{
+    int retval = 1;
+    AcquireRuntime* runtime = acquire_init(reporter);
+
+    try {
+        configure(runtime);
+        acquire(runtime);
+        retval = 0;
+    } catch (const std::exception& e) {
+        ERR("Failed to configure runtime: %s", e.what());
+    } catch (...) {
+        ERR("Failed to configure runtime: unknown error");
+    }
+
+    acquire_shutdown(runtime);
+    return retval;
 }
