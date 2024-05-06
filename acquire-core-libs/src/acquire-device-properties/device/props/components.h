@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include "platform.h"
 
+#define VIDEOFRAME_ALIGN 64
+
 #ifdef __cplusplus
 
 extern "C"
@@ -118,7 +120,7 @@ extern "C"
         uint64_t hardware_frame_id;
     };
 
-    struct ACQUIRE_ALIGN(64) VideoFrame
+    struct ACQUIRE_ALIGN(VIDEOFRAME_ALIGN) VideoFrame
     {
         /// The total number of bytes for this struct plus the
         /// size of the attached data buffer.

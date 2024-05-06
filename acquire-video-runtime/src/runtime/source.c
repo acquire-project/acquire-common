@@ -60,6 +60,10 @@ video_source_thread(struct video_source_s* self)
 
         size_t sz = bytes_of_image(&info.shape);
         size_t nbytes = sizeof(struct VideoFrame) + sz;
+        const size_t alignment = VIDEOFRAME_ALIGN;
+        const size_t padding =
+          (alignment - (nbytes & (alignment - 1))) & (alignment - 1);
+        const size_t nbytes_aligned = nbytes + padding;
 
         struct channel* channel =
           (self->enable_filter) ? self->to_filter : self->to_sink;
@@ -70,7 +74,7 @@ video_source_thread(struct video_source_s* self)
         last_stream = channel;
 
         struct VideoFrame* im =
-          (struct VideoFrame*)channel_write_map(channel, nbytes);
+          (struct VideoFrame*)channel_write_map(channel, nbytes_aligned);
         if (im) {
             CHECK(camera_get_frame(self->camera, im->data, &sz, &info) ==
                   Device_Ok);
@@ -82,7 +86,7 @@ video_source_thread(struct video_source_s* self)
                 last_hardware_frame_id = info.hardware_frame_id;
                 *im = (struct VideoFrame){
                     .shape = info.shape,
-                    .bytes_of_frame = nbytes,
+                    .bytes_of_frame = nbytes_aligned,
                     .frame_id = iframe,
                     .hardware_frame_id = info.hardware_frame_id,
                     .timestamps.hardware = info.hardware_timestamp,
