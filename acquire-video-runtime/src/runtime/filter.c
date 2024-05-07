@@ -107,8 +107,14 @@ process_data(struct video_filter_s* self,
             if (!*accumulator) {
                 struct ImageShape shape = in->shape;
                 shape.type = SampleType_f32;
-                size_t bytes_of_accumulator =
+
+                const size_t nbytes =
                   bytes_of_image(&shape) + sizeof(struct VideoFrame);
+                const size_t align = 8;
+                const size_t padding =
+                  (align - (nbytes & (align - 1))) & (align - 1);
+                const size_t bytes_of_accumulator = nbytes + padding;
+
                 *accumulator = (struct VideoFrame*)channel_write_map(
                   self->out, bytes_of_accumulator);
                 if (*accumulator) {
