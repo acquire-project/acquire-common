@@ -133,7 +133,7 @@ acquire(AcquireRuntime* runtime)
 
                 const size_t unpadded_bytes =
                   bytes_of_image(&cur->shape) + sizeof(*cur);
-                const size_t alignment = VIDEOFRAME_ALIGN;
+                const size_t alignment = 8;
                 const size_t padding =
                   (alignment - (unpadded_bytes & (alignment - 1))) &
                   (alignment - 1);
@@ -149,7 +149,7 @@ acquire(AcquireRuntime* runtime)
                       props.video[0].camera.settings.shape.y);
 
                 // check pointer is aligned
-                CHECK((size_t)cur % 64 == 0);
+                CHECK((size_t)cur % 8 == 0);
                 ++nframes;
             }
 

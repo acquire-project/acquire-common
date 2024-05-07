@@ -6,8 +6,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-#define ACQUIRE_ALIGN(n) __attribute__((aligned(n)))
-
 #ifdef __cplusplus
 extern "C"
 {
