@@ -62,6 +62,7 @@ configure(AcquireRuntime* runtime)
                                 SIZED("simulated.*empty.*") - 1,
                                 &props.video[0].camera.identifier));
 
+    // These settings are chosen to exercise the 8-byte alignment constraint.
     props.video[0].camera.settings.binning = 1;
     props.video[0].camera.settings.pixel_type = SampleType_u8;
     props.video[0].camera.settings.shape = {

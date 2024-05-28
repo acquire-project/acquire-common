@@ -60,9 +60,8 @@ video_source_thread(struct video_source_s* self)
 
         size_t sz = bytes_of_image(&info.shape);
         size_t nbytes = sizeof(struct VideoFrame) + sz;
-        const size_t align = 8;
-        const size_t padding = (align - (nbytes & (align - 1))) & (align - 1);
-        const size_t nbytes_aligned = nbytes + padding;
+        // padding to 8-byte aligned size
+        const size_t nbytes_aligned = 8*((nbytes+7)/8);
 
         struct channel* channel =
           (self->enable_filter) ? self->to_filter : self->to_sink;
