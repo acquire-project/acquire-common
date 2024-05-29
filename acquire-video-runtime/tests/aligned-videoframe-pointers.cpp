@@ -134,11 +134,7 @@ acquire(AcquireRuntime* runtime)
 
                 const size_t unpadded_bytes =
                   bytes_of_image(&cur->shape) + sizeof(*cur);
-                const size_t alignment = 8;
-                const size_t padding =
-                  (alignment - (unpadded_bytes & (alignment - 1))) &
-                  (alignment - 1);
-                const size_t nbytes_aligned = unpadded_bytes + padding;
+                const size_t nbytes_aligned = 8*((unpadded_bytes+7)/8)
 
                 // check data is correct
                 CHECK(bytes_of_image(&cur->shape) == 33 * 47);

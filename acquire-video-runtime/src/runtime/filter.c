@@ -110,10 +110,7 @@ process_data(struct video_filter_s* self,
 
                 const size_t nbytes =
                   bytes_of_image(&shape) + sizeof(struct VideoFrame);
-                const size_t align = 8;
-                const size_t padding =
-                  (align - (nbytes & (align - 1))) & (align - 1);
-                const size_t bytes_of_accumulator = nbytes + padding;
+                const size_t bytes_of_accumulator = 8*((nbytes+7)/8);
 
                 *accumulator = (struct VideoFrame*)channel_write_map(
                   self->out, bytes_of_accumulator);
