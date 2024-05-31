@@ -24,12 +24,6 @@
     } while (0)
 #define CHECK(e) EXPECT(e, "Expression evaluated as false:\n\t%s", #e)
 
-static size_t
-bytes_of_image(const struct ImageShape* const shape)
-{
-    return shape->strides.planes * bytes_of_type(shape->type);
-}
-
 static int
 check_frame_id(uint8_t stream_id,
                uint64_t iframe,
@@ -66,6 +60,8 @@ video_source_thread(struct video_source_s* self)
 
         size_t sz = bytes_of_image(&info.shape);
         size_t nbytes = sizeof(struct VideoFrame) + sz;
+        // padding to 8-byte aligned size
+        const size_t nbytes_aligned = 8*((nbytes+7)/8);
 
         struct channel* channel =
           (self->enable_filter) ? self->to_filter : self->to_sink;
@@ -76,7 +72,7 @@ video_source_thread(struct video_source_s* self)
         last_stream = channel;
 
         struct VideoFrame* im =
-          (struct VideoFrame*)channel_write_map(channel, nbytes);
+          (struct VideoFrame*)channel_write_map(channel, nbytes_aligned);
         if (im) {
             CHECK(camera_get_frame(self->camera, im->data, &sz, &info) ==
                   Device_Ok);
@@ -88,7 +84,7 @@ video_source_thread(struct video_source_s* self)
                 last_hardware_frame_id = info.hardware_frame_id;
                 *im = (struct VideoFrame){
                     .shape = info.shape,
-                    .bytes_of_frame = nbytes,
+                    .bytes_of_frame = nbytes_aligned,
                     .frame_id = iframe,
                     .hardware_frame_id = info.hardware_frame_id,
                     .timestamps.hardware = info.hardware_timestamp,

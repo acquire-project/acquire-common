@@ -52,6 +52,12 @@ bytes_of_type(enum SampleType type)
     return table[type];
 }
 
+size_t
+bytes_of_image(const struct ImageShape* const shape)
+{
+    return shape->strides.planes * bytes_of_type(shape->type);
+}
+
 //
 //  UNIT TESTS
 //

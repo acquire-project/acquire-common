@@ -1,9 +1,8 @@
-/// @file one-video-stream.cpp
-/// Test that we can consistently acquire frames from a single video stream.
+/// @file aligned-videoframe-pointers.cpp
+/// Test that VideoFrame pointers are aligned at 8 bytes.
 
 #include "acquire.h"
 #include "device/hal/device.manager.h"
-#include "device/props/components.h"
 #include "platform.h"
 #include "logger.h"
 
@@ -24,12 +23,6 @@ reporter(int is_error,
             line,
             function,
             msg);
-}
-
-static size_t
-bytes_of_frame(const VideoFrame* frame)
-{
-    return sizeof(*frame) + bytes_of_image(&frame->shape);
 }
 
 /// Helper for passing size static strings as function args.
@@ -57,40 +50,45 @@ void
 configure(AcquireRuntime* runtime)
 {
     CHECK(runtime);
-
     const DeviceManager* dm = acquire_device_manager(runtime);
     CHECK(dm);
 
     AcquireProperties props = {};
     OK(acquire_get_configuration(runtime, &props));
 
+    // configure camera
     DEVOK(device_manager_select(dm,
                                 DeviceKind_Camera,
                                 SIZED("simulated.*empty.*") - 1,
                                 &props.video[0].camera.identifier));
+
+    // These settings are chosen to exercise the 8-byte alignment constraint.
+    props.video[0].camera.settings.binning = 1;
+    props.video[0].camera.settings.pixel_type = SampleType_u8;
+    props.video[0].camera.settings.shape = {
+        .x = 33,
+        .y = 47,
+    };
+
+    // configure acquisition
+    props.video[0].max_frame_count = 10;
+
+    // configure storage
     DEVOK(device_manager_select(dm,
                                 DeviceKind_Storage,
-                                SIZED("tiff") - 1,
+                                SIZED("trash") - 1,
                                 &props.video[0].storage.identifier));
-
     storage_properties_init(
-      &props.video[0].storage.settings, 0, SIZED("out.tif"), 0, 0, { 0 }, 0);
-
-    OK(acquire_configure(runtime, &props));
-
-    AcquirePropertyMetadata metadata = { 0 };
-    OK(acquire_get_configuration_metadata(runtime, &metadata));
-
-    props.video[0].camera.settings.binning = 1;
-    props.video[0].camera.settings.pixel_type = SampleType_u12;
-    props.video[0].camera.settings.shape = {
-        .x = 1920,
-        .y = 1080,
-    };
-    props.video[0].max_frame_count = 10;
+      &props.video[0].storage.settings, 0, nullptr, 0, nullptr, 0, { 0 }, 0);
 
     OK(acquire_configure(runtime, &props));
     storage_properties_destroy(&props.video[0].storage.settings);
+}
+
+static size_t
+align_up(size_t n, size_t align)
+{
+    return (n + align - 1) & ~(align - 1);
 }
 
 void
@@ -102,7 +100,8 @@ acquire(AcquireRuntime* runtime)
     OK(acquire_get_configuration(runtime, &props));
 
     const auto next = [](VideoFrame* cur) -> VideoFrame* {
-        return (VideoFrame*)(((uint8_t*)cur) + bytes_of_frame(cur));
+        return (VideoFrame*)(((uint8_t*)cur) +
+                             align_up(cur->bytes_of_frame, 8));
     };
 
     const auto consumed_bytes = [](const VideoFrame* const cur,
@@ -110,10 +109,10 @@ acquire(AcquireRuntime* runtime)
         return (uint8_t*)end - (uint8_t*)cur;
     };
 
-    struct clock clock = {};
+    struct clock clock
+    {};
     // expected time to acquire frames + 100%
-    static double time_limit_ms =
-      (props.video[0].max_frame_count / 6.0) * 1000.0 * 2.0;
+    static double time_limit_ms = props.video[0].max_frame_count * 1000.0 * 3.0;
     clock_init(&clock);
     clock_shift_ms(&clock, time_limit_ms);
     OK(acquire_start(runtime));
@@ -126,18 +125,34 @@ acquire(AcquireRuntime* runtime)
             EXPECT(clock_cmp_now(&clock) < 0,
                    "Timeout at %f ms",
                    clock_toc_ms(&clock) + time_limit_ms);
+
             VideoFrame *beg, *end, *cur;
             OK(acquire_map_read(runtime, 0, &beg, &end));
+
             for (cur = beg; cur < end; cur = next(cur)) {
                 LOG("stream %d counting frame w id %d", 0, cur->frame_id);
+
+                const size_t unpadded_bytes =
+                  bytes_of_image(&cur->shape) + sizeof(*cur);
+                const size_t nbytes_aligned = 8*((unpadded_bytes+7)/8);
+
+                // check data is correct
+                CHECK(bytes_of_image(&cur->shape) == 33 * 47);
+                CHECK(cur->bytes_of_frame == nbytes_aligned);
+                CHECK(cur->frame_id == nframes);
                 CHECK(cur->shape.dims.width ==
                       props.video[0].camera.settings.shape.x);
                 CHECK(cur->shape.dims.height ==
                       props.video[0].camera.settings.shape.y);
+
+                // check pointer is aligned
+                CHECK((size_t)cur % 8 == 0);
                 ++nframes;
             }
+
             {
-                uint32_t n = (uint32_t)consumed_bytes(beg, end);
+                const auto n = (uint32_t)consumed_bytes(beg, end);
+                CHECK(n % 8 == 0);
                 OK(acquire_unmap_read(runtime, 0, n));
                 if (n)
                     LOG("stream %d consumed bytes %d", 0, n);
@@ -167,9 +182,7 @@ main()
         acquire(runtime);
         retval = 0;
     } catch (const std::exception& e) {
-        ERR("Failed to configure runtime: %s", e.what());
-    } catch (...) {
-        ERR("Failed to configure runtime: unknown error");
+        ERR("Exception: %s", e.what());
     }
 
     acquire_shutdown(runtime);

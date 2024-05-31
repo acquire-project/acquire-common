@@ -28,6 +28,7 @@ else ()
             zero-config-start
             filter-video-average
             repeat-start-no-monitor
+            aligned-videoframe-pointers
     )
 
     foreach (name ${tests})

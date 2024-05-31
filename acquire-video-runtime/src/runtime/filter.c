@@ -31,12 +31,6 @@ slice_size_bytes(const struct slice* slice)
     return (uint8_t*)slice->end - (uint8_t*)slice->beg;
 }
 
-static size_t
-bytes_of_image(const struct ImageShape* const shape)
-{
-    return shape->strides.planes * bytes_of_type(shape->type);
-}
-
 static int
 assert_consistent_shape(const struct VideoFrame* acc,
                         const struct VideoFrame* in)
@@ -113,8 +107,11 @@ process_data(struct video_filter_s* self,
             if (!*accumulator) {
                 struct ImageShape shape = in->shape;
                 shape.type = SampleType_f32;
-                size_t bytes_of_accumulator =
+
+                const size_t nbytes =
                   bytes_of_image(&shape) + sizeof(struct VideoFrame);
+                const size_t bytes_of_accumulator = 8*((nbytes+7)/8);
+
                 *accumulator = (struct VideoFrame*)channel_write_map(
                   self->out, bytes_of_accumulator);
                 if (*accumulator) {

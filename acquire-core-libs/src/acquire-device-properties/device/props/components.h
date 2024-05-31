@@ -143,6 +143,7 @@ extern "C"
 
     const char* sample_type_as_string(enum SampleType type);
     size_t bytes_of_type(enum SampleType type);
+    size_t bytes_of_image(const struct ImageShape* shape);
 
 #ifdef __cplusplus
 }
