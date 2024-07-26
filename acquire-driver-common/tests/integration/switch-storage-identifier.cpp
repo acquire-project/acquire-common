@@ -129,7 +129,7 @@ validate_storage_tiff()
     EXPECT(file_size >= 64 * 48 * nframes,
            "Expected file to have size at least %d (has size %d): %s",
            64 * 48 * nframes,
-           file_size,
+           (int)file_size,
            file_path.c_str());
 }
 
@@ -169,7 +169,7 @@ validate_storage_raw()
     EXPECT(file_size == (sizeof(VideoFrame) + 64 * 48) * nframes,
            "Expected file to have size %d (has size %d): %s",
            64 * 48 * nframes,
-           file_size,
+           (int)file_size,
            file_path.c_str());
 }
 
